@@ -1,4 +1,5 @@
 # Welcome to your Lovable project
+This repository powers **Prompt or Die**, a modular prompt toolkit and CLI.
 
 ## Project info
 
@@ -104,5 +105,4 @@ node cli/index.js build blocks.json
 node cli/index.js inject prompt.txt "More context" --mode append
 ```
 
-Run `node cli/index.js --help` to see all available options including login,
-prompt generation and clipboard export.
+Run `node cli/index.js --help` to see all available options including login, prompt generation and clipboard export. The `ascii` command lets you generate colorful ASCII art interactively using fonts from figlet and gradient-string styles. Psst: try `node cli/index.js motto` for a tiny dose of Prompt or Die philosophy.
