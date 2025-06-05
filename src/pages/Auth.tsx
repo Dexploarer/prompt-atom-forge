@@ -118,10 +118,10 @@ const Auth = () => {
       
       <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-4">
         <div className="mb-8 text-center">
-          <img src="/ppd.png" alt="Prompt or Die" className="h-24 w-auto mx-auto mb-4" />
+          <img src="/image.png" alt="Prompt or Die" className="h-24 w-auto mx-auto mb-4" />
         </div>
         
-        <Card className="w-full max-w-md border-primary/20 bg-background/90 shadow-[0_0_30px_rgba(0,255,128,0.1)]">
+        <Card className="w-full max-w-md border-primary/20 bg-background/90 shadow-[0_0_30px_rgba(139,0,0,0.1)]">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">Enter The Order</CardTitle>
             <CardDescription>

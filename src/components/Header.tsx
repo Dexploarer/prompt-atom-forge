@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { 
-  Code, 
   ExternalLink, 
   Github, 
   LogOut, 
@@ -13,9 +12,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
-import { signOut } from "@/lib/supabase";
+import { signOut } from '@/lib/supabase';
 import { useToast } from "@/hooks/use-toast";
-import { useCommandTerminal } from "@/hooks/use-command-terminal";
+import { useCommandTerminal } from '@/hooks/use-command-terminal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,7 +67,7 @@ const Header = () => {
           <Link to="/" className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-md overflow-hidden">
               <img 
-                src="/prod.png" 
+                src="/image.png" 
                 alt="Prompt or Die" 
                 className="h-full w-full object-contain"
               />
@@ -80,20 +79,19 @@ const Header = () => {
               Prompt or Die
             </h1>
           </Link>
-          <span className="text-xs text-primary font-mono bg-primary/10 px-2 py-1 rounded border border-primary/20">
+          <span className="text-xs text-[#8B0000] font-mono bg-[#8B0000]/10 px-2 py-1 rounded border border-[#8B0000]/20">
             BETA
           </span>
         </div>
         
         <nav className="hidden md:flex items-center space-x-8">
-          <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Builder</Link>
-          <Link to="/gallery" className="text-sm font-medium hover:text-accent transition-colors">Gallery</Link>
-          <Link to="/docs" className="text-sm font-medium hover:text-primary transition-colors">Docs</Link>
+          <Link to="/gallery" className="text-sm font-medium hover:text-[#8B0000] transition-colors">Gallery</Link>
+          <Link to="/docs" className="text-sm font-medium hover:text-[#8B0000] transition-colors">Docs</Link>
           <a 
             href="https://github.com/promptordie/prompt-builder" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="text-sm font-medium hover:text-accent transition-colors flex items-center gap-1"
+            className="text-sm font-medium hover:text-[#8B0000] transition-colors flex items-center gap-1"
           >
             GitHub
             <ExternalLink className="h-3 w-3" />
@@ -121,7 +119,7 @@ const Header = () => {
             title="Open Terminal (Ctrl + `)"
             className="rounded-full"
           >
-            <Terminal className="h-[18px] w-[18px]" />
+            <Terminal className="h-[18px] w-[18px] text-[#8B0000]" />
           </Button>
           
           <div className="hidden sm:block">
@@ -131,7 +129,7 @@ const Header = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="border-border hover:border-primary hover:text-primary"
+                    className="border-border hover:border-[#8B0000] hover:text-[#8B0000]"
                   >
                     <User className="h-4 w-4 mr-2" />
                     {user?.email?.split('@')[0] || 'Account'}
@@ -149,24 +147,15 @@ const Header = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mr-2 border-border hover:border-primary hover:text-primary"
-                  onClick={() => navigate("/auth")}
-                >
-                  Sign In
-                </Button>
-                
-                <Button 
-                  size="sm" 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect"
-                  onClick={() => navigate("/auth?tab=register")}
-                >
-                  Get Started
-                </Button>
-              </>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="border-[#8B0000]/30 text-[#8B0000] hover:bg-[#8B0000]/10 hover:border-[#8B0000]/60"
+                onClick={openTerminal}
+              >
+                <Terminal className="h-4 w-4 mr-2" />
+                Access Terminal
+              </Button>
             )}
           </div>
           
@@ -180,28 +169,21 @@ const Header = () => {
               <SheetContent>
                 <SheetHeader className="mb-4">
                   <SheetTitle className="flex items-center gap-2">
-                    <img src="/prod.png" alt="Prompt or Die" className="h-6 w-6" />
+                    <img src="/image.png" alt="Prompt or Die" className="h-6 w-6" />
                     Prompt or Die
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col space-y-4">
                   <Link 
-                    to="/" 
-                    className="text-sm font-medium hover:text-primary transition-colors py-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Builder
-                  </Link>
-                  <Link 
                     to="/gallery" 
-                    className="text-sm font-medium hover:text-accent transition-colors py-2"
+                    className="text-sm font-medium hover:text-[#8B0000] transition-colors py-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Gallery
                   </Link>
                   <Link 
                     to="/docs" 
-                    className="text-sm font-medium hover:text-primary transition-colors py-2"
+                    className="text-sm font-medium hover:text-[#8B0000] transition-colors py-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Docs
@@ -210,64 +192,24 @@ const Header = () => {
                     href="https://github.com/promptordie/prompt-builder" 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="text-sm font-medium hover:text-accent transition-colors flex items-center gap-1 py-2"
+                    className="text-sm font-medium hover:text-[#8B0000] transition-colors flex items-center gap-1 py-2"
                   >
                     GitHub
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </nav>
                 <div className="mt-6 space-y-2">
-                  {isAuthenticated ? (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start border-border hover:border-primary hover:text-primary"
-                        onClick={() => {
-                          navigate("/dashboard");
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        Dashboard
-                      </Button>
-                      
-                      <Button 
-                        variant="outline"
-                        className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          handleSignOut();
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Sign Out
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start border-border hover:border-primary hover:text-primary"
-                        onClick={() => {
-                          navigate("/auth");
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        Sign In
-                      </Button>
-                      
-                      <Button 
-                        className="w-full justify-start bg-primary hover:bg-primary/90 text-primary-foreground"
-                        onClick={() => {
-                          navigate("/auth?tab=register");
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        Get Started
-                      </Button>
-                    </>
-                  )}
+                  <Button 
+                    variant="outline"
+                    className="w-full justify-start border-[#8B0000]/30 text-[#8B0000] hover:bg-[#8B0000]/10 hover:border-[#8B0000]/60"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      openTerminal();
+                    }}
+                  >
+                    <Terminal className="h-4 w-4 mr-2" />
+                    Access Terminal
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>

@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* New modern dark theme with improved contrast and neon accents */
+    /* New modern dark theme with improved contrast and ruby crimson accents */
     --background: 220 20% 2%;
     --foreground: 210 40% 98%;
 
@@ -16,8 +16,8 @@
     --popover: 220 20% 3%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 140 100% 45%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 80% 32%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 220 30% 10%;
     --secondary-foreground: 210 40% 98%;
@@ -25,15 +25,15 @@
     --muted: 220 20% 12%;
     --muted-foreground: 220 10% 60%;
 
-    --accent: 185 100% 50%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 100%;
+    --accent-foreground: 220 20% 4%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 220 20% 12%;
     --input: 220 20% 10%;
-    --ring: 140 100% 45%;
+    --ring: 0 80% 32%;
 
     --radius: 0.5rem;
   }
@@ -76,7 +76,7 @@
   /* Enhanced glitch effect */
   .glitch-text {
     @apply relative;
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+    text-shadow: 0 0 5px rgba(139, 0, 0, 0.2);
   }
   
   .glitch-text::before,
@@ -87,13 +87,13 @@
   
   .glitch-text::before {
     @apply text-accent opacity-80;
-    text-shadow: 1px 0 2px rgba(0, 255, 255, 0.4);
+    text-shadow: 1px 0 2px rgba(255, 255, 255, 0.4);
     animation: glitch-1 0.8s infinite ease-in-out alternate-reverse;
   }
   
   .glitch-text::after {
     @apply text-primary opacity-80;
-    text-shadow: -1px 0 2px rgba(0, 255, 0, 0.4);
+    text-shadow: -1px 0 2px rgba(139, 0, 0, 0.4);
     animation: glitch-2 1s infinite ease-in-out alternate-reverse;
   }
 
@@ -168,7 +168,7 @@
   }
 
   .stat-card:hover {
-    @apply border-primary/30 shadow-[0_0_15px_rgba(0,255,128,0.1)];
+    @apply border-primary/30 shadow-[0_0_15px_rgba(139,0,0,0.1)];
   }
 
   .stat-card::before {
