@@ -11,7 +11,7 @@ npm install prompt-or-die
 ## Usage
 
 ```ts
-import { buildPrompt, injectPrompt } from 'prompt-or-die/sdk'
+import { buildPrompt, injectPrompt, BLOCK_TYPES } from 'prompt-or-die/sdk'
 import type { PromptBlock } from 'prompt-or-die/sdk'
 
 const blocks: PromptBlock[] = [
@@ -22,3 +22,6 @@ const blocks: PromptBlock[] = [
 const prompt = buildPrompt(blocks)
 const final = injectPrompt(prompt, 'Keep it short', 'append')
 ```
+
+`BLOCK_TYPES` provides the list of valid block type strings, useful for validation or UI helpers.
+
