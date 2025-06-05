@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { readFileSync, writeFileSync } from 'fs';
-import { readFileSync } from 'fs';
+import chalk from 'chalk';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import readline from 'node:readline/promises';
@@ -145,10 +145,49 @@ program
     } catch {
       console.log('No prompt.txt found to export.');
     }
-  .command('export')
-  .description('Export current prompt')
-  .action(() => {
-    console.log('Prompt exported (not implemented).');
+  });
+
+program
+  .command('ascii')
+  .description('Display interactive ASCII art')
+  .action(async () => {
+    const arts = {
+      1: { name: 'Prompt or Die', art: `
+ ____                        _       
+|  _ \\ ___ _ __   ___  _ __ | |_ ___ 
+| |_) / _ \\ '_ \\ / _ \\| '_ \\| __/ __|
+|  __/  __/ |_) | (_) | | | | |_\\__ \\
+|_|   \\___| .__/ \\___/|_| |_|\\__|___/
+          |_|                       
+` },
+      2: { name: 'Skull', art: `
+  .-''''-.
+ /        \\
+|  .--.  |
+| ( () ) |
+|  '--'  |
+ \\      /
+  '----'
+` },
+      3: { name: 'Triangle', art: `
+   /\\
+  /  \\
+ /____\\
+` }
+    };
+    console.log(chalk.blue('Choose an art style:'));
+    Object.entries(arts).forEach(([key, val]) => {
+      console.log(chalk.cyan(`${key}. ${val.name}`));
+    });
+    const rl = readline.createInterface({ input, output });
+    const choice = await rl.question(chalk.green('> '));
+    rl.close();
+    const selected = arts[choice.trim()];
+    if (selected) {
+      console.log(chalk.yellow(selected.art));
+    } else {
+      console.log(chalk.red('Invalid selection'));
+    }
   });
 
 program
