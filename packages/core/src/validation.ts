@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { PromptBlock, ValidationError, ValidationOptions } from './types';
+import { PromptBlock, ValidationErrorDetail, ValidationOptions } from './types';
 
 /**
  * Base schema for prompt block metadata
@@ -27,8 +27,8 @@ export const promptBlockSchema = z.object({
 export function validatePromptBlock(
   block: PromptBlock,
   options: ValidationOptions = { strict: true, allowUnknownKeys: false },
-): ValidationError[] {
-  const errors: ValidationError[] = [];
+): ValidationErrorDetail[] {
+  const errors: ValidationErrorDetail[] = [];
 
   try {
     // Schema validation
@@ -83,7 +83,7 @@ export function validatePromptBlock(
  * Creates a type-safe validator for a specific prompt block type
  */
 export function createPromptBlockValidator<T>(schema: z.ZodType<T>) {
-  return (block: PromptBlock<T>, options?: ValidationOptions): ValidationError[] => {
+  return (block: PromptBlock<T>, options?: ValidationOptions): ValidationErrorDetail[] => {
     const baseErrors = validatePromptBlock(block, options);
 
     try {

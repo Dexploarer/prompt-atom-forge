@@ -48,7 +48,7 @@ export interface ValidationOptions {
 /**
  * Represents error details for prompt validation
  */
-export interface ValidationError {
+export interface ValidationErrorDetail {
   code: string;
   message: string;
   path: string[];
@@ -62,3 +62,57 @@ export type PromptTemplate<P = Record<string, unknown>, R = unknown> = {
   (params: P): Promise<PromptOutput<R>>;
   metadata: PromptBlockMetadata;
 };
+
+/**
+ * Represents a provider for prompt execution
+ */
+export interface PromptProvider {
+  name: string;
+  executePrompt<T>(prompt: any, options?: ExecutionOptions): Promise<T>;
+  execute<T>(prompt: string | Record<string, unknown>, options?: ExecutionOptions): Promise<T>;
+  validateOptions(options: ExecutionOptions): boolean;
+}
+
+/**
+ * Configuration options for the prompt-or-die core
+ */
+export interface CoreOptions {
+  defaultProvider?: PromptProvider;
+  providers?: Record<string, PromptProvider>;
+  plugins?: Array<{
+    id: string;
+    name: string;
+    version: string;
+    init(): Promise<void>;
+  }>;
+  executionDefaults?: Partial<ExecutionOptions>;
+  debug?: boolean;
+  strict?: boolean;
+  cacheEnabled?: boolean;
+  metricsEnabled?: boolean;
+  cache?: {
+    enabled?: boolean;
+    maxSize?: number;
+    ttl?: number;
+  };
+  metrics?: {
+    enableDefaultMetrics?: boolean;
+    defaultLabels?: Record<string, string | number | boolean>;
+  };
+}
+
+/**
+ * Represents configuration options for prompt execution
+ */
+export interface ExecutionOptions {
+  provider?: string;
+  timeout?: number;
+  retries?: number;
+  cache?: boolean;
+  cacheKey?: string;
+  cacheTTL?: number;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  params?: Record<string, unknown>;
+}

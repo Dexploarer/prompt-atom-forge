@@ -73,6 +73,33 @@ export class ApiError extends PromptError {
 }
 
 /**
+ * Error thrown when SDK configuration is invalid
+ */
+export class ConfigurationError extends PromptError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'CONFIGURATION_ERROR', details);
+  }
+}
+
+/**
+ * Error thrown for general SDK errors
+ */
+export class SDKError extends PromptError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'SDK_ERROR', details);
+  }
+}
+
+/**
+ * Error thrown when a plugin operation fails
+ */
+export class PluginError extends PromptError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'PLUGIN_ERROR', details);
+  }
+}
+
+/**
  * Error recovery utilities
  */
 export const ErrorRecovery = {

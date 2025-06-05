@@ -43,6 +43,7 @@
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true
   },
+  "extends": "../../tsconfig.json",
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }
