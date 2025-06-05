@@ -50,10 +50,10 @@ program
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      console.error('Login failed:', error.message);
+      console.error(chalk.red('Login failed:'), error.message);
       process.exitCode = 1;
     } else {
-      console.log(`Logged in as ${data.user?.email}`);
+      console.log(chalk.green(`Logged in as ${data.user?.email}`));
     }
   });
 
@@ -68,10 +68,10 @@ program
 
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('Logout failed:', error.message);
+      console.error(chalk.red('Logout failed:'), error.message);
       process.exitCode = 1;
     } else {
-      console.log('Logged out successfully');
+      console.log(chalk.green('Logged out successfully'));
     }
   });
 
@@ -86,9 +86,9 @@ program
 
     const { data } = await supabase.auth.getUser();
     if (data?.user) {
-      console.log(`Logged in as ${data.user.email} (${data.user.id})`);
+      console.log(chalk.green(`Logged in as ${data.user.email} (${data.user.id})`));
     } else {
-      console.log('Not logged in.');
+      console.log(chalk.yellow('Not logged in.'));
     }
   });
 
@@ -110,9 +110,9 @@ program
         model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }]
       });
-      console.log(resp.choices[0].message.content);
+      console.log(chalk.cyan(resp.choices[0].message.content));
     } catch (err) {
-      console.error('Generation failed:', err.message || err);
+      console.error(chalk.red('Generation failed:'), err.message || err);
     }
   });
 
@@ -144,9 +144,9 @@ program
     try {
       const prompt = readFileSync('prompt.txt', 'utf8');
       clipboard.writeSync(prompt);
-      console.log('Prompt copied to clipboard.');
+      console.log(chalk.blue('Prompt copied to clipboard.'));
     } catch {
-      console.log('No prompt.txt found to export.');
+      console.log(chalk.yellow('No prompt.txt found to export.'));
     }
   });
 
@@ -154,24 +154,33 @@ program
   .command('ascii')
   .description('Display interactive ASCII art')
   .action(async () => {
-    const fonts = ['Standard', 'Slant', 'Ghost'];
+    const fonts = ['Standard', 'Slant', 'Ghost', 'Graffiti', 'Big', 'Doom'];
+    const styles = ['pastel', 'rainbow', 'morning', 'vice', 'retro'];
+
     const answers = await inquirer.prompt([
       {
         type: 'input',
         name: 'text',
-        message: 'Enter text',
+        message: chalk.cyan('Enter text'),
         default: 'Prompt or Die'
       },
       {
         type: 'list',
         name: 'font',
-        message: 'Choose a font',
+        message: chalk.green('Choose a font'),
         choices: fonts
+      },
+      {
+        type: 'list',
+        name: 'style',
+        message: chalk.green('Choose a color style'),
+        choices: styles
       }
     ]);
 
     const art = figlet.textSync(answers.text, { font: answers.font });
-    console.log(gradient.pastel.multiline(art));
+    const g = gradient[answers.style] || gradient.pastel;
+    console.log(g.multiline(art));
   });
 
 program
