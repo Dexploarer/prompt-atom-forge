@@ -157,30 +157,55 @@ program
     const fonts = ['Standard', 'Slant', 'Ghost', 'Graffiti', 'Big', 'Doom'];
     const styles = ['pastel', 'rainbow', 'morning', 'vice', 'retro'];
 
-    const answers = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'text',
-        message: chalk.cyan('Enter text'),
-        default: 'Prompt or Die'
-      },
-      {
-        type: 'list',
-        name: 'font',
-        message: chalk.green('Choose a font'),
-        choices: fonts
-      },
-      {
-        type: 'list',
-        name: 'style',
-        message: chalk.green('Choose a color style'),
-        choices: styles
-      }
-    ]);
+    try {
+      const answers = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'text',
+          message: chalk.cyan('Enter text'),
+          default: 'Prompt or Die'
+        },
+        {
+          type: 'list',
+          name: 'font',
+          message: chalk.green('Choose a font'),
+          choices: fonts
+        },
+        {
+          type: 'list',
+          name: 'style',
+          message: chalk.green('Choose a color style'),
+          choices: styles
+        }
+      ]);
 
-    const art = figlet.textSync(answers.text, { font: answers.font });
-    const g = gradient[answers.style] || gradient.pastel;
-    console.log(g.multiline(art));
+      const text = (answers.text || '').trim();
+      if (!text) {
+        console.log(chalk.yellow('No text provided.'));
+        return;
+      }
+
+      let art;
+      try {
+        art = await new Promise((resolve, reject) => {
+          figlet(text, { font: answers.font }, (err, data) => {
+            if (err || !data) {
+              reject(err || new Error('Invalid ASCII output'));
+            } else {
+              resolve(data);
+            }
+          });
+        });
+      } catch (err) {
+        console.error(chalk.red('Failed to generate ASCII art:'), err.message);
+        return;
+      }
+
+      const g = gradient[answers.style] || gradient.pastel;
+      console.log(g.multiline(art));
+    } catch (err) {
+      console.error(chalk.red('ASCII command failed:'), err.message);
+    }
   });
 
 program
