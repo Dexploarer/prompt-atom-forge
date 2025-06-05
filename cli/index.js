@@ -1,10 +1,23 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { readFileSync, writeFileSync } from 'fs';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
-import readline from 'node:readline/promises';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const read = require('read');
+let supabase = null;
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+} else if (supabaseUrl || supabaseAnonKey) {
+  console.warn('Incomplete Supabase credentials. Some commands will be disabled.');
+}
+if (!openaiKey) {
+  console.warn('OPENAI_API_KEY not set. OpenAI features will be disabled.');
+}
+    const password = await new Promise((resolve, reject) => {
+      read({ prompt: 'Password: ', silent: true }, (err, result) => {
+        if (err) reject(err); else resolve(result);
+      });
+    });
 import { stdin as input, stdout as output } from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
@@ -91,26 +104,40 @@ program
 
 program
   .command('generate')
-  .description('Generate a prompt from blocks')
-  .action(async () => {
-    if (!openai) {
-      console.error('OPENAI_API_KEY environment variable is not set.');
+    if (!existsSync(file)) {
+      console.error(`Input file "${file}" not found.`);
+      process.exitCode = 1;
       return;
     }
-
-    const rl = readline.createInterface({ input, output });
-    const prompt = await rl.question('Enter prompt: ');
-    rl.close();
-
+    let blocks;
     try {
-      const resp = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: prompt }]
-      });
-      console.log(resp.choices[0].message.content);
+      blocks = JSON.parse(readFileSync(file, 'utf8'));
     } catch (err) {
-      console.error('Generation failed:', err.message || err);
+      console.error('Invalid JSON file:', err.message);
+      process.exitCode = 1;
+      return;
     }
+    if (!['prepend', 'append', 'replace'].includes(options.mode)) {
+      console.error('Invalid mode. Use prepend, append, or replace.');
+      return;
+    }
+    try {
+      const base = readFileSync(file, 'utf8');
+      const finalText = injectPrompt(base, text, options.mode);
+      writeFileSync(file, finalText);
+      console.log(`File ${file} updated.`);
+    } catch (err) {
+      console.error('Injection failed:', err.message);
+    }
+    }
+
+    const safe = page.replace(/[^a-zA-Z0-9/_-]/g, '');
+    const url = safe.startsWith('http') ? safe : `${base}/${safe.replace(/^\//, '')}`;
+        console.log('Feature coming soon. Use the web app to manage projects.');
+        console.log('Feature coming soon.');
+        console.log('Block creation requires an active project. Feature coming soon.');
+        console.log('Listing projects is not implemented yet.');
+        console.log('Template listing is not implemented yet.');
   });
 
 program
