@@ -1,108 +1,138 @@
-# Welcome to your Lovable project
+# Prompt or Die - Visual AI Prompt Builder
 
-## Project info
+**Design prompts like design systems.** Build modular AI prompts with drag-and-drop blocks, preview in real-time, and export to any agent framework.
 
-**URL**: https://lovable.dev/projects/33b968e9-b933-426d-8e6d-8a9195697cc8
+## 🚀 Getting Started
 
-## How can I edit this code?
+This project is built with modern web technologies including React, TypeScript, Vite, and Tailwind CSS.
 
-There are several ways of editing your application.
+### Prerequisites
 
-**Use Lovable**
+- Node.js (v18 or higher)
+- npm or yarn
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/33b968e9-b933-426d-8e6d-8a9195697cc8) and start prompting.
+### Installation
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Clone the repository
 
-**Use your preferred IDE**
+```bash
+git clone <your-repo-url>
+cd prompt-or-die-1
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. Install dependencies
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+npm install
+```
 
-Follow these steps:
+3. Start the development server
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Open your browser and navigate to `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🏗️ Architecture
 
-**Use GitHub Codespaces**
+The application is built using a modular architecture with the following key technologies:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Frontend**: React 18 with TypeScript
+- **Styling**: Tailwind CSS with custom design system
+- **State Management**: React hooks and context
+- **Build Tool**: Vite
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **UI Components**: Custom component library built on Radix UI
 
-## What technologies are used for this project?
+## 📁 Project Structure
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/33b968e9-b933-426d-8e6d-8a9195697cc8) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-## Environment Variables
-
-Create a `.env` file based on `.env.example` and provide your credentials:
-
-```bash
-cp .env.example .env
-# then edit .env and add your keys
+```
+src/
+├── components/          # Reusable UI components
+│   └── ui/             # Base UI components
+├── hooks/              # Custom React hooks
+├── integrations/       # Third-party integrations
+│   └── supabase/      # Supabase client and types
+├── lib/               # Utility functions and helpers
+├── pages/             # Application pages/routes
+└── main.tsx          # Application entry point
 ```
 
-- `VITE_SUPABASE_URL` – Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` – Supabase anon key
-- `VITE_OPENAI_API_KEY` – OpenAI API key (optional if stored in the browser)
+## 🎨 Features
 
-## Linting
+- **Visual Prompt Builder**: Drag-and-drop interface for creating AI prompts
+- **Modular Blocks**: Reusable prompt components
+- **Real-time Preview**: See your prompts in action
+- **Export Options**: Export to various agent frameworks
+- **Project Management**: Organize your prompts into projects
+- **Gallery**: Browse and use community prompt templates
 
-Run ESLint to check code quality:
+## 🔧 Development
 
-```bash
-npm run lint
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-## CLI Usage
+## 🚀 Deployment
 
-The repository includes a small command line tool named `pad` that mirrors the
-browser terminal. Install dependencies with `npm install` and run commands via
-`node cli/index.js`:
+### Build for Production
 
 ```bash
-node cli/index.js build blocks.json
-node cli/index.js inject prompt.txt "More context" --mode append
+npm run build
 ```
 
-Run `node cli/index.js --help` to see all available options including login,
-prompt generation and clipboard export.
+The built files will be in the `dist` directory, ready for deployment to any static hosting service.
+
+### Recommended Hosting
+
+- Vercel
+- Netlify
+- GitHub Pages
+- Firebase Hosting
+
+## 🤝 Contributing
+
+We welcome contributions! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🔗 Links
+
+- **Website**: [www.promptordie.tech](https://www.promptordie.tech)
+- **Documentation**: Coming soon
+- **Discord**: Join our community (link coming soon)
+
+## 🆘 Support
+
+If you need help or have questions:
+
+1. Check the documentation
+2. Search existing issues
+3. Create a new issue with detailed information
+4. Join our Discord community for real-time support
+
+---
+
+Built with ❤️ by the Prompt or Die team
