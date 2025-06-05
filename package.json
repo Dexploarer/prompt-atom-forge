@@ -88,5 +88,8 @@
   },
   "bin": {
     "pad": "cli/index.js"
+  },
+  "exports": {
+    "./sdk": "./sdk/index.ts"
   }
 }

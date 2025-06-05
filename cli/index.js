@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { buildPrompt, injectPrompt } from '../sdk/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -108,6 +109,27 @@ program
     } catch (err) {
       console.error('Generation failed:', err.message || err);
     }
+  });
+
+program
+  .command('build <file>')
+  .description('Build a prompt from a JSON file of blocks')
+  .action(file => {
+    const blocks = JSON.parse(readFileSync(file, 'utf8'));
+    const prompt = buildPrompt(blocks);
+    writeFileSync('prompt.txt', prompt);
+    console.log('Prompt written to prompt.txt');
+  });
+
+program
+  .command('inject <file> <text>')
+  .description('Inject text into an existing prompt file')
+  .option('-m, --mode <mode>', 'prepend|append|replace', 'append')
+  .action((file, text, options) => {
+    const base = readFileSync(file, 'utf8');
+    const finalText = injectPrompt(base, text, options.mode);
+    writeFileSync(file, finalText);
+    console.log(`File ${file} updated.`);
   });
 
 program
