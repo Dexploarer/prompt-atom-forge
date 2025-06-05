@@ -27,7 +27,7 @@ export interface Metric {
   /** Metric type */
   type: MetricType;
   /** Optional description */
-  description?: string;
+  description: string | undefined;
   /** Metric labels/tags */
   labels?: MetricLabels;
 }
@@ -54,15 +54,15 @@ export interface GaugeMetric extends Metric {
 export interface HistogramMetric extends Metric {
   type: MetricType.HISTOGRAM;
   values: number[];
-  buckets?: number[];
-  count?: number;
-  sum?: number;
-  min?: number;
-  max?: number;
-  mean?: number;
-  median?: number;
-  p95?: number;
-  p99?: number;
+  buckets: number[];
+  count: number;
+  sum: number;
+  min: number | undefined;
+  max: number | undefined;
+  mean: number | undefined;
+  median: number | undefined;
+  p95: number | undefined;
+  p99: number | undefined;
 }
 
 /**
@@ -71,8 +71,8 @@ export interface HistogramMetric extends Metric {
 export interface TimerMetric extends Metric {
   type: MetricType.TIMER;
   durationMs: number;
-  startTime?: number;
-  endTime?: number;
+  startTime: number | undefined;
+  endTime: number | undefined;
 }
 
 /**
@@ -109,10 +109,12 @@ export interface PerformanceSpan {
 export interface MetricRegistryOptions {
   /** Default labels to apply to all metrics */
   defaultLabels?: MetricLabels;
-  /** Whether to enable automatic collection of SDK metrics */
+  /** Enable collection of default SDK metrics */
   enableDefaultMetrics?: boolean;
-  /** Maximum number of values to keep in histogram metrics */
+  /** Maximum number of values to store in histograms */
   maxHistogramValues?: number;
+  /** Enable/disable metrics collection globally */
+  enabled?: boolean;
 }
 
 /**
@@ -146,4 +148,24 @@ export interface MetricRegistry {
   time<T>(name: string, fn: () => T, labels?: MetricLabels): T;
   /** Time an async function execution */
   timeAsync<T>(name: string, fn: () => Promise<T>, labels?: MetricLabels): Promise<T>;
+  
+  /** Get or create a counter metric with additional convenience methods */
+  counter(name: string, description?: string, labels?: MetricLabels): {
+    inc(value?: number): void;
+    dec(value?: number): void;
+    reset(): void;
+    get(): number;
+    set(value: number): void;
+  };
+  
+  /** Start a new performance measurement span */
+  startSpan(name: string, labels?: MetricLabels): PerformanceSpan;
+  
+  /** Start a timer for timing code execution */
+  startTimer(name: string, labels?: MetricLabels): {
+    end(): number;
+  };
+  
+  /** Check if metrics collection is enabled */
+  isEnabled(): boolean;
 }

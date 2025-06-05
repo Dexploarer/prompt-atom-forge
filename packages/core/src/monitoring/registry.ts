@@ -82,10 +82,12 @@ export class DefaultMetricRegistry implements MetricRegistry {
   private metrics: Map<string, Metric> = new Map();
   private defaultLabels: MetricLabels;
   private maxHistogramValues: number;
+  private enabled: boolean;
   
   constructor(options: MetricRegistryOptions = {}) {
     this.defaultLabels = options.defaultLabels || {};
     this.maxHistogramValues = options.maxHistogramValues || 1000;
+    this.enabled = options.enabled !== false;
     
     if (options.enableDefaultMetrics) {
       this.initializeDefaultMetrics();
@@ -99,7 +101,7 @@ export class DefaultMetricRegistry implements MetricRegistry {
     // SDK version
     this.registerGauge('promptordie_sdk_info', 'SDK version and info', {
       ...this.defaultLabels,
-      version: process.env.npm_package_version || 'unknown'
+      version: process.env['npm_package_version'] || 'unknown'
     });
     
     // Prompt execution count
@@ -141,7 +143,7 @@ export class DefaultMetricRegistry implements MetricRegistry {
     const metric: CounterMetric = {
       name,
       type: MetricType.COUNTER,
-      description,
+      description: description || undefined,
       labels: { ...this.defaultLabels, ...(labels || {}) },
       value: 0
     };
@@ -161,7 +163,7 @@ export class DefaultMetricRegistry implements MetricRegistry {
     const metric: GaugeMetric = {
       name,
       type: MetricType.GAUGE,
-      description,
+      description: description || undefined,
       labels: { ...this.defaultLabels, ...(labels || {}) },
       value: 0
     };
@@ -182,7 +184,7 @@ export class DefaultMetricRegistry implements MetricRegistry {
     const metric: HistogramMetric = {
       name,
       type: MetricType.HISTOGRAM,
-      description,
+      description: description || undefined,
       labels: { ...this.defaultLabels, ...(labels || {}) },
       values: [],
       buckets: buckets || [0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10],
@@ -211,7 +213,7 @@ export class DefaultMetricRegistry implements MetricRegistry {
     const metric: TimerMetric = {
       name,
       type: MetricType.TIMER,
-      description,
+      description: description || undefined,
       labels: { ...this.defaultLabels, ...(labels || {}) },
       durationMs: 0,
       startTime: undefined,
@@ -317,17 +319,22 @@ export class DefaultMetricRegistry implements MetricRegistry {
     metric.count = sortedValues.length;
     metric.mean = metric.sum / metric.count;
     
-    // Calculate median
-    const midIndex = Math.floor(sortedValues.length / 2);
-    metric.median = sortedValues.length % 2 === 0
-      ? (sortedValues[midIndex - 1] + sortedValues[midIndex]) / 2
-      : sortedValues[midIndex];
-    
-    // Calculate percentiles
-    const p95Index = Math.ceil(sortedValues.length * 0.95) - 1;
-    const p99Index = Math.ceil(sortedValues.length * 0.99) - 1;
-    metric.p95 = sortedValues[p95Index];
-    metric.p99 = sortedValues[p99Index];
+    // Calculate median (if we have values)
+    if (sortedValues.length > 0) {
+      const midIndex = Math.floor(sortedValues.length / 2);
+      metric.median = sortedValues.length % 2 === 0
+        ? (sortedValues[midIndex - 1] + sortedValues[midIndex]) / 2
+        : sortedValues[midIndex];
+      
+      // Calculate percentiles (if we have enough values)
+      if (sortedValues.length > 20) { // Only calculate percentiles with enough data points
+        const p95Index = Math.ceil(sortedValues.length * 0.95) - 1;
+        const p99Index = Math.ceil(sortedValues.length * 0.99) - 1;
+        
+        metric.p95 = p95Index >= 0 && p95Index < sortedValues.length ? sortedValues[p95Index] : undefined;
+        metric.p99 = p99Index >= 0 && p99Index < sortedValues.length ? sortedValues[p99Index] : undefined;
+      }
+    }
   }
   
   /**
@@ -366,5 +373,88 @@ export class DefaultMetricRegistry implements MetricRegistry {
     
     histogram.values.push(measurement.durationMs);
     this.updateHistogramStats(histogram);
+  }
+  
+  /**
+   * Get or create a counter metric with additional convenience methods
+   */
+  counter(name: string, description?: string, labels?: MetricLabels) {
+    if (!this.enabled) {
+      // Return no-op counter when metrics are disabled
+      return {
+        inc: () => {},
+        dec: () => {},
+        reset: () => {},
+        get: () => 0,
+        set: () => {}
+      };
+    }
+    
+    // Get or create counter
+    let counter = this.getMetric<CounterMetric>(name);
+    if (!counter) {
+      counter = this.registerCounter(name, description, labels);
+    }
+    
+    // Return counter with convenience methods
+    return {
+      inc: (value = 1) => {
+        counter.value += value;
+      },
+      dec: (value = 1) => {
+        counter.value = Math.max(0, counter.value - value);
+      },
+      reset: () => {
+        counter.value = 0;
+      },
+      get: () => counter.value,
+      set: (value: number) => {
+        counter.value = value;
+      }
+    };
+  }
+  
+  /**
+   * Start a new performance measurement span
+   */
+  startSpan(name: string, labels?: MetricLabels): PerformanceSpan {
+    return this.createSpan(name, labels);
+  }
+  
+  /**
+   * Start a timer for timing code execution
+   */
+  startTimer(name: string, labels?: MetricLabels) {
+    if (!this.enabled) {
+      // Return no-op timer when metrics are disabled
+      return {
+        end: () => 0
+      };
+    }
+    
+    const start = performance.now();
+    return {
+      end: () => {
+        const end = performance.now();
+        const duration = end - start;
+        
+        this.recordTimerMetric({
+          name,
+          durationMs: duration,
+          startTime: start,
+          endTime: end,
+          labels: { ...this.defaultLabels, ...(labels || {}) }
+        });
+        
+        return duration;
+      }
+    };
+  }
+  
+  /**
+   * Check if metrics collection is enabled
+   */
+  isEnabled(): boolean {
+    return this.enabled;
   }
 }

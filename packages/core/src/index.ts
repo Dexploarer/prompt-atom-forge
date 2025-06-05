@@ -9,7 +9,19 @@ import { CoreOptions, PromptProvider, ExecutionOptions } from './types';
 import { PluginManager, Plugin, PluginLifecycle, PromptHookPlugin, PromptTransformerPlugin } from './plugins';
 import { createMetricRegistry, globalRegistry, MetricRegistry } from './monitoring';
 import { createMemoryCache, defaultCache, Cache } from './cache';
-import { ConfigurationError, SDKError } from './errors';
+import {
+  ConfigurationError,
+  SDKError,
+  PromptExecutionError,
+  NetworkError,
+  ApiError,
+  TimeoutError,
+  RateLimitError,
+  AuthenticationError,
+  ErrorRecovery,
+  ErrorClassification,
+  enrichError
+} from './errors';
 import { PromptBuilder } from './prompt';
 
 // Export core functionality
@@ -192,6 +204,25 @@ export class CoreSDK {
       throw new ConfigurationError(`Provider "${providerName}" not found`);
     }
     
+    // Set default execution options
+    const executionOptions: ExecutionOptions = {
+      retryConfig: {
+        maxRetries: 3,
+        initialDelay: 500,
+        maxDelay: 5000,
+      },
+      timeout: 30000, // 30 seconds default timeout
+      ...options
+    };
+    
+    // Execution context for enriching error details
+    const executionContext = {
+      provider: providerName,
+      timestamp: new Date().toISOString(),
+      promptId: options.promptId || Math.random().toString(36).substring(2, 15),
+      options: { ...executionOptions }
+    };
+    
     try {
       // Apply transformer plugins to the prompt
       const transformerPlugins = this.pluginManager.getPluginsByType<PromptTransformerPlugin>('transformer');
@@ -199,35 +230,148 @@ export class CoreSDK {
       
       for (const plugin of transformerPlugins) {
         if (typeof plugin.transformPrompt === 'function') {
-          modifiedPrompt = await plugin.transformPrompt(modifiedPrompt);
+          try {
+            modifiedPrompt = await plugin.transformPrompt(modifiedPrompt);
+          } catch (error) {
+            throw enrichError(
+              new PromptExecutionError(`Transform plugin '${plugin.id}' failed: ${error instanceof Error ? error.message : String(error)}`),
+              { pluginId: plugin.id, pluginName: plugin.name, phase: 'transform' }
+            );
+          }
         }
       }
       
       // Generate cache key from prompt
       const cacheKey = `prompt_${providerName}_${modifiedPrompt.serialize()}`;
       
-      // Check cache if enabled
-      if (this.options.cacheEnabled && options.cache !== false) {
-        const cached = await this.cache.get<T>(cacheKey);
-        
-        if (cached) {
-          this.metricRegistry.counter('prompt_cache_hits').inc();
-          return cached;
+      // Check cache if enabled (with error recovery)
+      if (this.options.cacheEnabled && executionOptions.cache !== false) {
+        try {
+          const cached = await ErrorRecovery.withFallback(
+            async () => await this.cache.get<T>(cacheKey),
+            undefined as T | undefined,
+            (err) => this.metricRegistry.counter('cache_errors').inc()
+          );
+          
+          if (cached) {
+            this.metricRegistry.counter('prompt_cache_hits').inc();
+            return cached;
+          }
+        } catch (error) {
+          // Cache errors should not prevent execution, just log them
+          this.metricRegistry.counter('cache_errors').inc();
+          
+          if (this.options.debug) {
+            console.warn('Cache retrieval failed:', error);
+          }
         }
       }
       
-      // Execute the prompt with the provider
+      // Execute the prompt with the provider and handle timeouts/retries
       this.metricRegistry.counter('prompt_executions').inc();
       const timer = this.metricRegistry.startTimer('prompt_execution_time');
       
-      const result = await provider.executePrompt<T>(modifiedPrompt, options);
+      // Create execution function with proper error mapping
+      const executeWithProvider = async (): Promise<T> => {
+        try {
+          return await provider.executePrompt<T>(modifiedPrompt, executionOptions);
+        } catch (error) {
+          // Map provider errors to our error types for consistent handling
+          if (error instanceof Error) {
+            const errorMsg = error.message.toLowerCase();
+            
+            if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
+              throw new TimeoutError(
+                `Prompt execution timed out with provider "${providerName}"`,
+                { timeoutMs: executionOptions.timeout, provider: providerName }
+              );
+            }
+            
+            if (errorMsg.includes('rate limit') || errorMsg.includes('too many requests') || 
+                (error instanceof ApiError && error.status === 429)) {
+              // Extract reset time if available
+              const resetInMs = error instanceof ApiError && 
+                typeof error.response === 'object' && 
+                error.response && 'reset_in' in error.response ? 
+                Number((error.response as any).reset_in) * 1000 : undefined;
+              
+              throw new RateLimitError(
+                `Rate limit exceeded with provider "${providerName}"`,
+                resetInMs,
+                { provider: providerName }
+              );
+            }
+            
+            if (errorMsg.includes('auth') || errorMsg.includes('key') || errorMsg.includes('token') || 
+                errorMsg.includes('credential') || 
+                (error instanceof ApiError && error.status === 401)) {
+              throw new AuthenticationError(
+                `Authentication failed with provider "${providerName}"`,
+                { provider: providerName }
+              );
+            }
+            
+            if (errorMsg.includes('network') || errorMsg.includes('connection') || 
+                errorMsg.includes('unreachable') || 
+                (error instanceof ApiError && error.status >= 500)) {
+              throw new NetworkError(
+                `Network error with provider "${providerName}"`,
+                { provider: providerName }
+              );
+            }
+          }
+          
+          // If no specific error type matched, wrap in PromptExecutionError
+          throw new PromptExecutionError(
+            `Failed to execute prompt with provider "${providerName}": ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error, provider: providerName }
+          );
+        }
+      };
       
+      // Apply timeout if specified
+      const executeWithTimeout = executionOptions.timeout ? 
+        () => ErrorRecovery.withTimeout(
+          executeWithProvider,
+          executionOptions.timeout as number,
+          `Prompt execution with provider "${providerName}" timed out after ${executionOptions.timeout}ms`
+        ) : executeWithProvider;
+      
+      // Apply retries if configured
+      const retryConfig = executionOptions.retryConfig || {};
+      const executeWithRetries = retryConfig.maxRetries ? 
+        () => ErrorRecovery.retry(
+          executeWithTimeout,
+          {
+            maxRetries: retryConfig.maxRetries,
+            initialDelay: retryConfig.initialDelay,
+            maxDelay: retryConfig.maxDelay,
+            factor: retryConfig.factor || 2,
+            // Only retry on network errors, timeouts, rate limits, and 5xx errors
+            retryableErrors: [NetworkError.name, TimeoutError.name, RateLimitError.name, /5\d\d/],
+            onRetry: (error, attempt, delay) => {
+              this.metricRegistry.counter('prompt_execution_retries').inc();
+              if (this.options.debug) {
+                console.warn(`Retrying prompt execution (${attempt}/${retryConfig.maxRetries}) after ${delay}ms:`, error);
+              }
+            }
+          }
+        ) : executeWithTimeout;
+      
+      // Execute with all error handling mechanisms
+      const result = await executeWithRetries();
       timer.end();
       
-      // Store in cache if enabled
-      if (this.options.cacheEnabled && options.cache !== false) {
-        const ttl = options.cacheTTL || this.options.cache?.ttl;
-        await this.cache.set(cacheKey, result, { ttl });
+      // Store in cache if enabled (with error handling)
+      if (this.options.cacheEnabled && executionOptions.cache !== false) {
+        const ttl = executionOptions.cacheTTL || this.options.cache?.ttl;
+        
+        // Use withFallback so cache errors don't affect the result
+        await ErrorRecovery.withFallback(
+          async () => await this.cache.set(cacheKey, result, { ttl }),
+          undefined,
+          (err) => this.metricRegistry.counter('cache_errors').inc()
+        );
       }
       
       // Apply hooks from plugins after execution
@@ -236,7 +380,15 @@ export class CoreSDK {
       
       for (const plugin of hookPlugins) {
         if (typeof plugin.afterPromptExecution === 'function') {
-          processedResult = await plugin.afterPromptExecution(processedResult);
+          try {
+            processedResult = await plugin.afterPromptExecution(processedResult);
+          } catch (error) {
+            // Log but continue with other hooks
+            this.metricRegistry.counter('plugin_errors').inc();
+            if (this.options.debug) {
+              console.warn(`Hook plugin '${plugin.id}' afterPromptExecution failed:`, error);
+            }
+          }
         }
       }
       
@@ -247,16 +399,32 @@ export class CoreSDK {
       // Apply error hooks from plugins
       const hookPlugins = this.pluginManager.getPluginsByType<PromptHookPlugin>('hook');
       
+      // Try to execute all error hooks, but don't fail if they fail
       for (const plugin of hookPlugins) {
         if (typeof plugin.onPromptExecutionError === 'function' && error instanceof Error) {
-          await plugin.onPromptExecutionError(error);
+          try {
+            await plugin.onPromptExecutionError(error);
+          } catch (hookError) {
+            // Just log the hook error but continue with other hooks
+            this.metricRegistry.counter('plugin_errors').inc();
+            if (this.options.debug) {
+              console.warn(`Error hook in plugin '${plugin.id}' failed:`, hookError);
+            }
+          }
         }
       }
       
-      throw new SDKError(
-        `Failed to execute prompt with provider "${providerName}": ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      );
+      // Enrich the error with execution context
+      if (error instanceof PromptError) {
+        enrichError(error, executionContext);
+        throw error;
+      } else {
+        // Wrap unknown errors
+        throw new PromptExecutionError(
+          `Unhandled error during prompt execution with provider "${providerName}": ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error, ...executionContext }
+        );
+      }
     } finally {
       span.end();
     }

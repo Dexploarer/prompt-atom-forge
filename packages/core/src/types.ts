@@ -96,23 +96,139 @@ export interface CoreOptions {
     ttl?: number;
   };
   metrics?: {
+    /** Enable or disable metrics collection globally */
+    enabled?: boolean;
+    /** Enable collection of default SDK metrics */
     enableDefaultMetrics?: boolean;
+    /** Default labels to apply to all metrics */
     defaultLabels?: Record<string, string | number | boolean>;
+    /** Maximum number of values to store in histograms */
+    maxHistogramValues?: number;
   };
+}
+
+/**
+ * Retry configuration for prompt execution
+ */
+export interface RetryConfig {
+  /**
+   * Maximum number of retry attempts
+   */
+  maxRetries?: number;
+
+  /**
+   * Initial delay in ms before the first retry
+   */
+  initialDelay?: number;
+
+  /**
+   * Maximum delay in ms between retries
+   */
+  maxDelay?: number;
+
+  /**
+   * Exponential backoff factor
+   */
+  factor?: number;
+
+  /**
+   * List of error patterns to retry on (strings or regex patterns)
+   */
+  retryableErrors?: Array<string | RegExp>;
+
+  /**
+   * Callback fired on each retry attempt
+   */
+  onRetry?: (error: unknown, attempt: number, delayMs: number) => void;
+}
+
+/**
+ * Circuit breaker configuration for prompt execution
+ */
+export interface CircuitBreakerConfig {
+  /**
+   * Number of failures before opening the circuit
+   */
+  failureThreshold?: number;
+
+  /**
+   * Time in ms before attempting to close the circuit again
+   */
+  resetTimeout?: number;
+
+  /**
+   * Callback when circuit state changes
+   */
+  onStateChange?: (state: 'open' | 'closed' | 'half-open') => void;
 }
 
 /**
  * Represents configuration options for prompt execution
  */
 export interface ExecutionOptions {
+  /**
+   * Provider ID to use for execution
+   */
   provider?: string;
+
+  /**
+   * Unique ID for this prompt execution
+   */
+  promptId?: string;
+
+  /**
+   * Execution timeout in milliseconds
+   */
   timeout?: number;
+
+  /**
+   * Advanced retry configuration
+   */
+  retryConfig?: RetryConfig;
+
+  /**
+   * Circuit breaker configuration
+   */
+  circuitBreaker?: CircuitBreakerConfig;
+
+  /**
+   * Simple retry count (deprecated, use retryConfig instead)
+   * @deprecated
+   */
   retries?: number;
+
+  /**
+   * Enable/disable cache for this execution
+   */
   cache?: boolean;
+
+  /**
+   * Custom cache key
+   */
   cacheKey?: string;
+
+  /**
+   * Cache TTL in milliseconds
+   */
   cacheTTL?: number;
+
+  /**
+   * Model to use for execution (provider-specific)
+   */
   model?: string;
+
+  /**
+   * Temperature for model generation (0-1)
+   */
   temperature?: number;
+
+  /**
+   * Maximum tokens to generate
+   */
   maxTokens?: number;
+
+  /**
+   * Additional provider-specific parameters
+   */
   params?: Record<string, unknown>;
 }
