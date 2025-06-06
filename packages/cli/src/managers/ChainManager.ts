@@ -7,6 +7,8 @@ import { input, select, confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import ora from 'ora';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import { BaseManager } from './BaseManager.js';
 import { PromptChain, PromptChainStep, ChainCondition } from '../types.js';
 
@@ -140,7 +142,9 @@ export class ChainManager extends BaseManager<PromptChain> {
       updatedAt: new Date()
     };
 
-    this.save(chain);
+    // Validate and save the chain
+    const validatedChain = this.validateAndNormalizeChain(chain);
+    this.save(validatedChain);
     console.log(chalk.green(`\n✅ Prompt chain '${name}' created successfully!`));
     await this.pressAnyKey();
   }
@@ -391,7 +395,8 @@ export class ChainManager extends BaseManager<PromptChain> {
     }
 
     chain.updatedAt = new Date();
-    this.save(chain);
+    const validatedChain = this.validateAndNormalizeChain(chain);
+    this.save(validatedChain);
     console.log(chalk.green('\n✅ Chain updated successfully!'));
     await this.pressAnyKey();
   }
@@ -525,7 +530,52 @@ export class ChainManager extends BaseManager<PromptChain> {
    * Export chain
    */
   async exportChain(): Promise<void> {
-    console.log(chalk.yellow('\n📤 Chain Export - Coming Soon!'));
+    const chains = this.loadAll();
+    
+    if (chains.length === 0) {
+      console.log(chalk.yellow('\n📭 No chains found to export.'));
+      await this.pressAnyKey();
+      return;
+    }
+
+    const choices = [
+      { name: 'Export all chains', value: 'all' },
+      ...chains.map(chain => ({
+        name: `${chain.name} (${chain.steps.length} steps)`,
+        value: chain.id
+      }))
+    ];
+
+    const selection = await select({
+      message: 'Select what to export:',
+      choices
+    });
+
+    let exportData: PromptChain[];
+    let filename: string;
+
+    if (selection === 'all') {
+      exportData = chains;
+      filename = `chains_export_${new Date().toISOString().split('T')[0]}.json`;
+    } else {
+      const chain = this.findById(selection);
+      if (!chain) {
+        console.log(chalk.red('\n❌ Chain not found!'));
+        await this.pressAnyKey();
+        return;
+      }
+      exportData = [chain];
+      filename = `chain_${chain.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+    }
+
+    try {
+      const exportPath = join(process.cwd(), filename);
+      writeFileSync(exportPath, JSON.stringify(exportData, null, 2));
+      console.log(chalk.green(`\n✅ Exported ${exportData.length} chain(s) to: ${exportPath}`));
+    } catch (error) {
+      console.error(chalk.red('\n❌ Export failed:'), error instanceof Error ? error.message : String(error));
+    }
+
     await this.pressAnyKey();
   }
 
@@ -533,8 +583,189 @@ export class ChainManager extends BaseManager<PromptChain> {
    * Import chain
    */
   async importChain(): Promise<void> {
-    console.log(chalk.yellow('\n📥 Chain Import - Coming Soon!'));
+    const filePath = await input({
+      message: 'Enter path to JSON file to import:',
+      validate: (value) => {
+        if (!value) return 'File path is required';
+        if (!existsSync(value)) return 'File does not exist';
+        if (!value.endsWith('.json')) return 'File must be a JSON file';
+        return true;
+      }
+    });
+
+    try {
+      const fileContent = readFileSync(filePath, 'utf8');
+      const importData = JSON.parse(fileContent);
+
+      // Validate import data
+      if (!Array.isArray(importData)) {
+        throw new Error('Import file must contain an array of chains');
+      }
+
+      // Validate each chain structure
+      const validChains: PromptChain[] = [];
+      for (const chainData of importData) {
+        const validatedChain = this.validateChainData(chainData);
+        if (validatedChain) {
+          validChains.push(validatedChain);
+        }
+      }
+
+      if (validChains.length === 0) {
+        console.log(chalk.yellow('\n⚠️  No valid chains found in import file.'));
+        await this.pressAnyKey();
+        return;
+      }
+
+      console.log(chalk.blue(`\n📥 Found ${validChains.length} valid chain(s) to import:`));
+      validChains.forEach(chain => {
+        console.log(`  • ${chain.name} (${chain.steps.length} steps)`);
+      });
+
+      const confirmed = await confirm({
+        message: 'Proceed with import?'
+      });
+
+      if (!confirmed) {
+        console.log(chalk.yellow('\n⚠️  Import cancelled.'));
+        await this.pressAnyKey();
+        return;
+      }
+
+      // Import chains
+      let imported = 0;
+      let updated = 0;
+      
+      for (const chain of validChains) {
+         const existing = this.findById(chain.id);
+         if (existing) {
+           updated++;
+         } else {
+           imported++;
+         }
+         const validatedChain = this.validateAndNormalizeChain(chain);
+         this.save(validatedChain);
+       }
+
+      console.log(chalk.green(`\n✅ Import completed! ${imported} new chains imported, ${updated} chains updated.`));
+    } catch (error) {
+      console.error(chalk.red('\n❌ Import failed:'), error instanceof Error ? error.message : String(error));
+    }
+
     await this.pressAnyKey();
+  }
+
+  /**
+   * Validate and normalize chain for saving
+   */
+  private validateAndNormalizeChain(chain: PromptChain): PromptChain {
+    // Ensure all required properties exist and are properly typed
+    return {
+      id: chain.id,
+      name: chain.name,
+      description: chain.description,
+      steps: chain.steps.map(step => this.normalizeStep(step)),
+      variables: chain.variables || {},
+      conditions: Array.isArray(chain.conditions) ? chain.conditions : [],
+      metadata: {
+        tags: Array.isArray(chain.metadata?.tags) ? chain.metadata.tags : [],
+        category: chain.metadata?.category || 'other',
+        difficulty: ['beginner', 'intermediate', 'advanced'].includes(chain.metadata?.difficulty) 
+          ? chain.metadata.difficulty 
+          : 'beginner',
+        estimatedTime: typeof chain.metadata?.estimatedTime === 'number' 
+          ? chain.metadata.estimatedTime 
+          : 0
+      },
+      createdAt: chain.createdAt || new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  /**
+   * Normalize step data
+   */
+  private normalizeStep(step: PromptChainStep): PromptChainStep {
+    return <PromptChainStep>{
+      id: step.id,
+      name: step.name,
+      prompt: step.prompt,
+      expectedOutput: step.expectedOutput,
+      nextSteps: Array.isArray(step.nextSteps) ? step.nextSteps : [],
+      conditions: Array.isArray(step.conditions) ? step.conditions : [],
+      timeout: typeof step.timeout === 'number' ? step.timeout : undefined,
+      retries: typeof step.retries === 'number' ? step.retries : undefined
+    };
+  }
+
+  /**
+   * Validate and normalize chain data
+   */
+  private validateChainData(data: any): PromptChain | null {
+    try {
+      // Ensure required fields exist
+      if (!data.id || !data.name || !data.description) {
+        console.warn(chalk.yellow(`⚠️  Skipping chain with missing required fields: ${data.name || 'unnamed'}`));
+        return null;
+      }
+
+      // Ensure steps is an array
+      if (!Array.isArray(data.steps)) {
+        console.warn(chalk.yellow(`⚠️  Skipping chain '${data.name}': steps must be an array`));
+        return null;
+      }
+
+      // Validate and normalize the chain structure
+      const chain: PromptChain = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        steps: data.steps.map((step: any) => this.validateStepData(step)).filter(Boolean),
+        variables: data.variables || {},
+        conditions: Array.isArray(data.conditions) ? data.conditions : [],
+        metadata: {
+          tags: Array.isArray(data.metadata?.tags) ? data.metadata.tags : [],
+          category: data.metadata?.category || 'other',
+          difficulty: ['beginner', 'intermediate', 'advanced'].includes(data.metadata?.difficulty) 
+            ? data.metadata.difficulty 
+            : 'beginner',
+          estimatedTime: typeof data.metadata?.estimatedTime === 'number' 
+            ? data.metadata.estimatedTime 
+            : 0
+        },
+        createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+        updatedAt: new Date()
+      };
+
+      return chain;
+    } catch (error) {
+      console.warn(chalk.yellow(`⚠️  Skipping invalid chain data: ${error instanceof Error ? error.message : String(error)}`));
+      return null;
+    }
+  }
+
+  /**
+   * Validate and normalize step data
+   */
+  private validateStepData(data: any): PromptChainStep | null {
+    try {
+      if (!data.id || !data.name || !data.prompt) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        prompt: data.prompt,
+        expectedOutput: data.expectedOutput,
+        nextSteps: Array.isArray(data.nextSteps) ? data.nextSteps : [],
+        conditions: Array.isArray(data.conditions) ? data.conditions : [],
+        timeout: typeof data.timeout === 'number' ? data.timeout : undefined,
+        retries: typeof data.retries === 'number' ? data.retries : undefined
+      };
+    } catch (error) {
+      return null;
+    }
   }
 
   /**

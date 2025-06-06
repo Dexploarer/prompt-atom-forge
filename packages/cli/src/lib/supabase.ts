@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import type { Database } from '@/lib/database.types';
 
 // Default Supabase configuration
 const DEFAULT_SUPABASE_URL = 'https://your-project.supabase.co';
@@ -58,7 +59,7 @@ function getSupabaseConfig() {
 
 const config = getSupabaseConfig();
 
-export const supabase = createClient(config.url, config.anonKey, {
+export const supabase = createClient<Database>(config.url, config.anonKey, {
   auth: {
     persistSession: true,
     storageKey: 'prompt-or-die-cli-auth',
@@ -155,14 +156,16 @@ export async function signUpWithEmail(email: string, password: string, handle?: 
   
   if (error) throw error;
   
-  // Insert user data if registration successful
+  // Insert user settings if registration successful
   if (data.user) {
     const { error: insertError } = await supabase
-      .from('users')
+      .from('user_settings')
       .insert({
-        id: data.user.id,
-        email: data.user.email!,
-        handle: handle || email.split('@')[0],
+        user_id: data.user.id,
+        settings: {
+          email: data.user.email!,
+          handle: handle || email.split('@')[0]
+        },
         created_at: new Date().toISOString()
       });
     

@@ -2,10 +2,15 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../..",
     "module": "CommonJS",
     "target": "ES2022",
     "moduleResolution": "node",
+    "baseUrl": "../..",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/lib/*": ["./src/lib/*"]
+    },
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "strict": true,

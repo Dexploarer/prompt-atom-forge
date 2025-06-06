@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { PromptBlockProps } from '@/components/PromptBlock';
 const ProjectEditor = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -23,9 +24,49 @@ const ProjectEditor = () => {
   const [projectName, setProjectName] = useState(isCreating ? 'New Project' : '');
   const [blocks, setBlocks] = useState<PromptBlockProps[]>([]);
   
+  // Get generated prompt from Quick Prompt Builder if available
+  const generatedPrompt = location.state?.generatedPrompt;
+  const promptConfig = location.state?.config;
+  
   useEffect(() => {
     // If we're creating a new project, no need to fetch data
     if (isCreating) {
+      // Initialize project name and blocks based on generated prompt if available
+      if (generatedPrompt && promptConfig) {
+        setProjectName(`Quick Prompt - ${promptConfig.type} (${new Date().toLocaleDateString()})`);
+        setBlocks([
+          {
+            id: Date.now().toString(),
+            type: 'intent',
+            label: 'Intent',
+            value: promptConfig.goal || 'Generated from Quick Prompt Builder'
+          },
+          {
+            id: (Date.now() + 1).toString(),
+            type: 'tone',
+            label: 'Tone',
+            value: promptConfig.tone
+          },
+          {
+            id: (Date.now() + 2).toString(),
+            type: 'context',
+            label: 'Context',
+            value: promptConfig.context || 'Context from Quick Prompt Builder'
+          },
+          {
+            id: (Date.now() + 3).toString(),
+            type: 'format',
+            label: 'Format',
+            value: `Format: ${promptConfig.format}, Length: ${promptConfig.length}`
+          },
+          {
+            id: (Date.now() + 4).toString(),
+            type: 'format',
+            label: 'Generated Prompt',
+            value: generatedPrompt
+          }
+        ]);
+      }
       setIsLoading(false);
       return;
     }
@@ -132,7 +173,7 @@ const ProjectEditor = () => {
             name: projectName,
             last_modified: new Date().toISOString()
           })
-          .eq('id', projectId)
+          .eq('id', projectId as string)
           .eq('user_id', user.id);
           
         if (error) throw error;

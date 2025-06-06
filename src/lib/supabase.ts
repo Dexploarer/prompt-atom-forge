@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from './database.types';
+import { Database } from '../integrations/supabase/types';
 
 // Use Vite environment variables for browser environment
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nhghudkseqdmgajcwybz.supabase.co';
