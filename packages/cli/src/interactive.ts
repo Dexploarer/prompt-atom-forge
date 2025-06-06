@@ -3,7 +3,7 @@
  * @module @prompt-or-die/cli/interactive
  */
 
-import { select, input, confirm } from '@inquirer/prompts';
+import { select, input, confirm, checkbox } from '@inquirer/prompts';
 import chalk from 'chalk';
 import figlet from 'figlet';
 import boxen from 'boxen';
