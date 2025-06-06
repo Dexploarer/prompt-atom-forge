@@ -10,7 +10,7 @@ import chalk from 'chalk';
 /**
  * Base manager class for handling file operations
  */
-export abstract class BaseManager<T> {
+export abstract class BaseManager<T extends { id: string }> {
   protected dataDir: string;
   protected filename: string;
   protected filePath: string;
@@ -65,7 +65,7 @@ export abstract class BaseManager<T> {
    */
   save(item: T & { id: string }): void {
     const data = this.loadData();
-    const existingIndex = data.findIndex((existing: any) => existing.id === item.id);
+    const existingIndex = data.findIndex((existing: T & { id: string }) => existing.id === item.id);
     
     if (existingIndex >= 0) {
       data[existingIndex] = item;
@@ -88,7 +88,7 @@ export abstract class BaseManager<T> {
    */
   findById(id: string): T | undefined {
     const data = this.loadData();
-    return data.find((item: any) => item.id === id);
+    return data.find((item: T & { id: string }) => item.id === id);
   }
 
   /**
@@ -97,7 +97,7 @@ export abstract class BaseManager<T> {
   delete(id: string): boolean {
     const data = this.loadData();
     const initialLength = data.length;
-    const filteredData = data.filter((item: any) => item.id !== id);
+    const filteredData = data.filter((item: T & { id: string }) => item.id !== id);
     
     if (filteredData.length < initialLength) {
       this.saveData(filteredData);
@@ -121,7 +121,7 @@ export abstract class BaseManager<T> {
     const data = this.loadData();
     const lowerQuery = query.toLowerCase();
     
-    return data.filter((item: any) => {
+    return data.filter((item: T & { name?: string; description?: string }) => {
       const name = item.name?.toLowerCase() || '';
       const description = item.description?.toLowerCase() || '';
       return name.includes(lowerQuery) || description.includes(lowerQuery);

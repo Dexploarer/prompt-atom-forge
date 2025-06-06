@@ -3,9 +3,9 @@
  * @module @prompt-or-die/cli/managers/EmotionManager
  */
 
-import { input, select, confirm, number } from '@inquirer/prompts';
+import { input, select, confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
-import * as Table from 'cli-table3';
+import Table from 'cli-table3';
 import { BaseManager } from './BaseManager.js';
 import { EmotionalState } from '../types.js';
 
@@ -104,40 +104,56 @@ export class EmotionManager extends BaseManager<EmotionalState> {
       ]
     });
 
-    const intensity = await number({
+    const intensityInput = await input({
       message: 'Intensity (0-100):',
-      min: 0,
-      max: 100,
-      default: 50
+      default: '50',
+      validate: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+        return true;
+      }
     });
+    const intensity = parseInt(intensityInput);
 
-    const valence = await number({
+    const valenceInput = await input({
       message: 'Valence - positive/negative (-100 to 100):',
-      min: -100,
-      max: 100,
-      default: 0
+      default: '0',
+      validate: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < -100 || num > 100) return 'Please enter a number between -100 and 100';
+        return true;
+      }
     });
+    const valence = parseInt(valenceInput);
 
-    const arousal = await number({
+    const arousalInput = await input({
       message: 'Arousal - calm/excited (0-100):',
-      min: 0,
-      max: 100,
-      default: 50
+      default: '50',
+      validate: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+        return true;
+      }
     });
+    const arousal = parseInt(arousalInput);
 
-    const dominance = await number({
+    const dominanceInput = await input({
       message: 'Dominance - submissive/dominant (0-100):',
-      min: 0,
-      max: 100,
-      default: 50
+      default: '50',
+      validate: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+        return true;
+      }
     });
+    const dominance = parseInt(dominanceInput);
 
     // Secondary emotions
     const hasSecondary = await confirm({
       message: 'Add secondary emotions?'
     });
 
-    let secondaryEmotions: Array<{ emotion: string; weight: number }> = [];
+    const secondaryEmotions: Array<{ emotion: string; weight: number }> = [];
     if (hasSecondary) {
       let addMore = true;
       while (addMore && secondaryEmotions.length < 3) {
@@ -155,14 +171,18 @@ export class EmotionManager extends BaseManager<EmotionalState> {
           ].filter(choice => choice.value !== primaryEmotion)
         });
 
-        const weight = await number({
+        const weightInput = await input({
           message: 'Weight (0-100):',
-          min: 0,
-          max: 100,
-          default: 25
+          default: '25',
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+            return true;
+          }
         });
+        const weight = parseInt(weightInput);
 
-secondaryEmotions.push({ emotion: secondaryEmotion, weight: weight ?? 0 });
+secondaryEmotions.push({ emotion: secondaryEmotion, weight });
 
         if (secondaryEmotions.length < 3) {
           addMore = await confirm({
@@ -195,10 +215,10 @@ secondaryEmotions.push({ emotion: secondaryEmotion, weight: weight ?? 0 });
       name,
       description: description || undefined,
       primaryEmotion,
-      intensity: intensity ?? 50,
-      valence: valence ?? 0,
-      arousal: arousal ?? 50,
-      dominance: dominance ?? 50,
+      intensity,
+      valence,
+      arousal,
+      dominance,
       secondaryEmotions: secondaryEmotions.map(se => se.emotion),
       context,
       triggers,
@@ -229,7 +249,7 @@ await this.save({
 
     console.log(chalk.blue(`\n📋 Emotional States (${emotions.length} total)\n`));
 
-    const table = new Table.default({
+    const table = new Table({
       head: ['Name', 'Primary', 'Intensity', 'Valence', 'Context', 'Created'],
       colWidths: [20, 15, 10, 10, 25, 12]
     });
@@ -331,36 +351,52 @@ await this.save({
         });
         break;
       case 'intensity':
-        emotion.intensity = await number({
+        const intensityInput = await input({
           message: 'New intensity (0-100):',
-          default: emotion.intensity,
-          min: 0,
-          max: 100
-        }) ?? emotion.intensity;
+          default: emotion.intensity.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+            return true;
+          }
+        });
+        emotion.intensity = parseInt(intensityInput);
         break;
       case 'valence':
-        emotion.valence = await number({
+        const valenceInput = await input({
           message: 'New valence (-100 to 100):',
-          default: emotion.valence,
-          min: -100,
-          max: 100
-        }) ?? emotion.valence;
+          default: emotion.valence.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < -100 || num > 100) return 'Please enter a number between -100 and 100';
+            return true;
+          }
+        });
+        emotion.valence = parseInt(valenceInput);
         break;
       case 'arousal':
-        emotion.arousal = await number({
+        const arousalInput = await input({
           message: 'New arousal (0-100):',
-          default: emotion.arousal,
-          min: 0,
-          max: 100
-        }) ?? emotion.arousal;
+          default: emotion.arousal.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+            return true;
+          }
+        });
+        emotion.arousal = parseInt(arousalInput);
         break;
       case 'dominance':
-        emotion.dominance = await number({
+        const dominanceInput = await input({
           message: 'New dominance (0-100):',
-          default: emotion.dominance,
-          min: 0,
-          max: 100
-        }) ?? emotion.dominance;
+          default: emotion.dominance.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+            return true;
+          }
+        });
+        emotion.dominance = parseInt(dominanceInput);
         break;
       case 'context':
         const contextInput = await input({
@@ -453,7 +489,7 @@ await this.save({
 
     console.log(chalk.blue(`\n🔍 Search Results for '${query}' (${results.length} found)\n`));
 
-    const table = new Table.default({
+    const table = new Table({
       head: ['Name', 'Primary', 'Intensity', 'Context'],
       colWidths: [25, 15, 10, 30]
     });
@@ -524,7 +560,7 @@ await this.save({
       }
     ];
 
-    const table = new Table.default({
+    const table = new Table({
       head: ['Preset', 'Primary', 'Intensity', 'Valence', 'Arousal', 'Context'],
       colWidths: [20, 12, 10, 10, 10, 25]
     });
@@ -628,14 +664,17 @@ await this.save({
       return;
     }
 
-    const weight1 = await number({
+    const weight1Input = await input({
       message: `Weight for '${emotion1.name}' (0-100):`,
-      min: 0,
-      max: 100,
-      default: 50
+      default: '50',
+      validate: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0 || num > 100) return 'Please enter a number between 0 and 100';
+        return true;
+      }
     });
-
-    const weight2 = 100 - (weight1 ?? 50); // Default to 50 if weight1 is undefined
+    const weight1 = parseInt(weight1Input);
+    const weight2 = 100 - weight1;
 
     // Blend the emotions
     const blendedName = await input({
@@ -647,11 +686,11 @@ await this.save({
       id: Date.now().toString(),
       name: blendedName,
       description: `Blend of ${emotion1.name} (${weight1}%) and ${emotion2.name} (${weight2}%)`,
-      primaryEmotion: (weight1 ?? 50) >= 50 ? emotion1.primaryEmotion : emotion2.primaryEmotion,
-      intensity: Math.round((emotion1.intensity * (weight1 ?? 50) + emotion2.intensity * weight2) / 100),
-      valence: Math.round((emotion1.valence * (weight1 ?? 50) + emotion2.valence * weight2) / 100),
-      arousal: Math.round((emotion1.arousal * (weight1 ?? 50) + emotion2.arousal * weight2) / 100),
-      dominance: Math.round((emotion1.dominance * (weight1 ?? 50) + emotion2.dominance * weight2) / 100),
+      primaryEmotion: weight1 >= 50 ? emotion1.primaryEmotion : emotion2.primaryEmotion,
+      intensity: Math.round((emotion1.intensity * weight1 + emotion2.intensity * weight2) / 100),
+      valence: Math.round((emotion1.valence * weight1 + emotion2.valence * weight2) / 100),
+      arousal: Math.round((emotion1.arousal * weight1 + emotion2.arousal * weight2) / 100),
+      dominance: Math.round((emotion1.dominance * weight1 + emotion2.dominance * weight2) / 100),
       secondaryEmotions: [emotion1.primaryEmotion, emotion2.primaryEmotion],
       context: Array.from(new Set([...emotion1.context, ...emotion2.context])),
       triggers: Array.from(new Set([...emotion1.triggers, ...emotion2.triggers])),

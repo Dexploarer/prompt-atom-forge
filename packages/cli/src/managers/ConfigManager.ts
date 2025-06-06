@@ -3,7 +3,7 @@
  * @module @prompt-or-die/cli/managers/ConfigManager
  */
 
-import { input, select, confirm, number } from '@inquirer/prompts';
+import { input, select, confirm } from '@inquirer/prompts';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
@@ -138,7 +138,8 @@ export class ConfigManager {
         requireAuth: false,
         sessionTimeout: 3600,
         logSensitiveData: false
-      }
+      },
+      webAppUrl: 'http://localhost:3000'
     };
 
     if (!existsSync(this.configPath)) {
@@ -317,27 +318,29 @@ export class ConfigManager {
         break;
 
       case 'maxTokens':
-        const maxTokens = await number({
+        const maxTokensInput = await input({
           message: 'Max tokens:',
-          default: this.config.maxTokens,
-          min: 100,
-          max: 32000
+          default: this.config.maxTokens.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 100 || num > 32000) return 'Please enter a number between 100 and 32000';
+            return true;
+          }
         });
-        if (maxTokens !== undefined) {
-          this.config.maxTokens = maxTokens;
-        }
+        this.config.maxTokens = parseInt(maxTokensInput);
         break;
 
       case 'temperature':
-        const temperature = await number({
+        const temperatureInput = await input({
           message: 'Temperature (0.0 - 2.0):',
-          default: this.config.temperature,
-          min: 0,
-          max: 2
+          default: this.config.temperature.toString(),
+          validate: (value) => {
+            const num = parseFloat(value);
+            if (isNaN(num) || num < 0 || num > 2) return 'Please enter a number between 0.0 and 2.0';
+            return true;
+          }
         });
-        if (temperature !== undefined) {
-          this.config.temperature = temperature;
-        }
+        this.config.temperature = parseFloat(temperatureInput);
         break;
 
       case 'outputFormat':
@@ -361,15 +364,16 @@ export class ConfigManager {
         break;
 
       case 'backupCount':
-        const backupCount = await number({
+        const backupCountInput = await input({
           message: 'Number of backups to keep:',
-          default: this.config.backupCount,
-          min: 0,
-          max: 50
+          default: this.config.backupCount.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 0 || num > 50) return 'Please enter a number between 0 and 50';
+            return true;
+          }
         });
-        if (backupCount !== undefined) {
-          this.config.backupCount = backupCount;
-        }
+        this.config.backupCount = parseInt(backupCountInput);
         break;
 
       case 'language':
@@ -674,36 +678,52 @@ export class ConfigManager {
         });
         break;
       case 'cacheSize':
-        const cacheSize = await number({
+        const cacheSizeInput = await input({
           message: 'Cache size (number of items):',
-          default: this.config.performance.cacheSize,
-          min: 10,
-          max: 1000
+          default: this.config.performance.cacheSize.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 10 || num > 1000) return 'Please enter a number between 10 and 1000';
+            return true;
+          }
         });
+        this.config.performance.cacheSize = parseInt(cacheSizeInput);
         break;
       case 'cacheTTL':
-        const cacheTTL = await number({
+        const cacheTTLInput = await input({
           message: 'Cache TTL (seconds):',
-          default: this.config.performance.cacheTTL,
-          min: 60,
-          max: 86400
+          default: this.config.performance.cacheTTL.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 60 || num > 86400) return 'Please enter a number between 60 and 86400';
+            return true;
+          }
         });
+        this.config.performance.cacheTTL = parseInt(cacheTTLInput);
         break;
       case 'parallelRequests':
-        const parallelRequests = await number({
+        const parallelRequestsInput = await input({
           message: 'Max parallel requests:',
-          default: this.config.performance.parallelRequests,
-          min: 1,
-          max: 10
+          default: this.config.performance.parallelRequests.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 1 || num > 10) return 'Please enter a number between 1 and 10';
+            return true;
+          }
         });
+        this.config.performance.parallelRequests = parseInt(parallelRequestsInput);
         break;
       case 'requestTimeout':
-        const requestTimeout = await number({
+        const requestTimeoutInput = await input({
           message: 'Request timeout (milliseconds):',
-          default: this.config.performance.requestTimeout,
-          min: 5000,
-          max: 120000
+          default: this.config.performance.requestTimeout.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 5000 || num > 120000) return 'Please enter a number between 5000 and 120000';
+            return true;
+          }
         });
+        this.config.performance.requestTimeout = parseInt(requestTimeoutInput);
         break;
     }
 
@@ -740,12 +760,16 @@ export class ConfigManager {
         });
         break;
       case 'sessionTimeout':
-        const sessionTimeout = await number({
+        const sessionTimeoutInput = await input({
           message: 'Session timeout (seconds):',
-          default: this.config.security.sessionTimeout,
-          min: 300,
-          max: 86400
+          default: this.config.security.sessionTimeout.toString(),
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 300 || num > 86400) return 'Please enter a number between 300 and 86400';
+            return true;
+          }
         });
+        this.config.security.sessionTimeout = parseInt(sessionTimeoutInput);
         break;
       case 'logSensitiveData':
         this.config.security.logSensitiveData = await confirm({

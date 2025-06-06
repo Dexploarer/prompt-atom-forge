@@ -13,6 +13,7 @@ import { ChainManager } from './managers/ChainManager.js';
 import { MCPManager } from './managers/MCPManager.js';
 import { ConfigManager } from './managers/ConfigManager.js';
 import { ContactManager } from './managers/ContactManager.js';
+import { AuthManager } from './managers/AuthManager.js';
 import { PromptBuilder } from './modules/PromptBuilder.js';
 import { MCPServerGenerator } from './modules/MCPServerGenerator.js';
 import { AnalyticsHelper } from './modules/AnalyticsHelper.js';
@@ -28,6 +29,7 @@ export class InteractiveCLI {
   private mcpManager: MCPManager;
   private configManager: ConfigManager;
   private contactManager: ContactManager;
+  private authManager: AuthManager;
   private promptBuilder: PromptBuilder;
   private analyticsHelper: AnalyticsHelper;
   private importExportManager: ImportExportManager;
@@ -43,6 +45,7 @@ export class InteractiveCLI {
     this.chainManager = new ChainManager(dataDir);
     this.mcpManager = new MCPManager();
     this.contactManager = new ContactManager(dataDir);
+    this.authManager = new AuthManager(dataDir, this.configManager.getConfig());
     
     // Initialize module helpers
     this.promptBuilder = new PromptBuilder(this.chainManager);
@@ -74,9 +77,14 @@ export class InteractiveCLI {
       console.log(chalk.bold(chalk.blue('\n🚀 Prompt or Die - Main Menu')));
       console.log(chalk.gray('Interactive SDK for AI prompt engineering\n'));
 
+      const authStatus = this.authManager.isAuthenticated() ? 
+        `🔮 Authenticated as ${this.authManager.getCurrentUser()?.email}` : 
+        '🚪 Authentication Required';
+      
       const action = await select({
-        message: 'What would you like to do?',
+        message: `What would you like to do? (${authStatus})`,
         choices: [
+          { name: '🔮 Authentication Portal', value: 'auth' },
           { name: '⚡ Quick Prompt Builder', value: 'prompt' },
           { name: '🤖 Character Sheets', value: 'character' },
           { name: '🎭 Emotional States', value: 'emotion' },
@@ -91,6 +99,9 @@ export class InteractiveCLI {
       });
 
       switch (action) {
+        case 'auth':
+          await this.authManager.showMenu();
+          break;
         case 'prompt':
           await this.promptBuilder.quickPromptBuilder();
           break;

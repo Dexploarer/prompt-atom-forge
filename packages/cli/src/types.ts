@@ -164,6 +164,7 @@ export interface CLIConfig {
     logSensitiveData: boolean;
   };
   plugins: string[];
+  webAppUrl?: string;
 }
 
 /**
