@@ -42,8 +42,8 @@ export abstract class BaseManager<T> {
     try {
       const data = readFileSync(this.filePath, 'utf8');
       return JSON.parse(data);
-    } catch (error) {
-      console.warn(chalk.yellow(`⚠️  Failed to load ${this.filename}:`, error.message));
+    } catch (error: unknown) {
+      console.warn(chalk.yellow(`⚠️  Failed to load ${this.filename}:`, error instanceof Error ? error.message : String(error)));
       return [];
     }
   }
@@ -54,8 +54,8 @@ export abstract class BaseManager<T> {
   protected saveData(data: T[]): void {
     try {
       writeFileSync(this.filePath, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error(chalk.red(`❌ Failed to save ${this.filename}:`, error.message));
+    } catch (error: unknown) {
+      console.error(chalk.red(`❌ Failed to save ${this.filename}:`, error instanceof Error ? error.message : String(error)));
       throw error;
     }
   }
@@ -126,5 +126,24 @@ export abstract class BaseManager<T> {
       const description = item.description?.toLowerCase() || '';
       return name.includes(lowerQuery) || description.includes(lowerQuery);
     });
+  }
+
+  /**
+   * Export all data
+   */
+  exportData(): T[] {
+    return this.loadData();
+  }
+
+  /**
+   * Import data
+   */
+  importData(data: T[]): void {
+    // Validate that data is an array before saving
+    if (!Array.isArray(data)) {
+      throw new Error('Import data must be an array');
+    }
+    
+    this.saveData(data);
   }
 }

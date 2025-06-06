@@ -88,6 +88,18 @@ export class ConfigManager {
    */
   private loadConfig(): CLIConfig {
     const defaultConfig: CLIConfig = {
+      dataDir: join(homedir(), '.prompt-or-die', 'data'),
+      apiKeys: {
+        openai: '',
+        anthropic: '',
+        google: ''
+      },
+      defaultSettings: {
+        theme: 'light',
+        autoSave: true,
+        verboseOutput: false
+      },
+      plugins: [],
       apiKey: '',
       defaultModel: 'gpt-4',
       maxTokens: 4000,
@@ -269,12 +281,36 @@ export class ConfigManager {
         this.config.defaultModel = await select({
           message: 'Select default model:',
           choices: [
-            { name: 'GPT-4', value: 'gpt-4' },
-            { name: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
-            { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
-            { name: 'Claude 3 Opus', value: 'claude-3-opus' },
-            { name: 'Claude 3 Sonnet', value: 'claude-3-sonnet' },
-            { name: 'Claude 3 Haiku', value: 'claude-3-haiku' }
+            // OpenAI Models (2025)
+            { name: 'GPT-4.1', value: 'gpt-4.1' },
+            { name: 'GPT-4.1 mini', value: 'gpt-4.1-mini' },
+            { name: 'GPT-4.1 nano', value: 'gpt-4.1-nano' },
+            { name: 'GPT-4o', value: 'gpt-4o' },
+            
+            // Anthropic Claude Models (2025)
+            { name: 'Claude Opus 4', value: 'claude-opus-4' },
+            { name: 'Claude Sonnet 4', value: 'claude-sonnet-4' },
+            { name: 'Claude 3.5 Sonnet', value: 'claude-3.5-sonnet' },
+            { name: 'Claude 3 Haiku', value: 'claude-3-haiku' },
+            
+            // Google Gemini Models (2025)
+            { name: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro' },
+            { name: 'Gemini 2.0 Flash', value: 'gemini-2.0-flash' },
+            { name: 'Gemini 2.0 Flash-Lite', value: 'gemini-2.0-flash-lite' },
+            { name: 'Gemini 2.0 Pro Experimental', value: 'gemini-2.0-pro-experimental' },
+            
+            // Kluster.ai Models (2025)
+            { name: 'Qwen3-235B-A22B', value: 'qwen3-235b-a22b' },
+            { name: 'Llama 4 Maverick', value: 'llama-4-maverick' },
+            { name: 'Llama 4 Scout', value: 'llama-4-scout' },
+            { name: 'DeepSeek-V3-0324', value: 'deepseek-v3-0324' },
+            { name: 'DeepSeek-R1-0528', value: 'deepseek-r1-0528' },
+            { name: 'DeepSeek-R1', value: 'deepseek-r1' },
+            { name: 'Qwen2.5-VL-7B-Instruct', value: 'qwen2.5-vl-7b-instruct' },
+            { name: 'Gemma 3', value: 'gemma-3' },
+            { name: 'Llama 8B Instruct Turbo', value: 'llama-8b-instruct-turbo' },
+            { name: 'Llama 70B Instruct Turbo', value: 'llama-70b-instruct-turbo' },
+            { name: 'Mistral NeMo', value: 'mistral-nemo' }
           ],
           default: this.config.defaultModel
         });
@@ -638,7 +674,7 @@ export class ConfigManager {
         });
         break;
       case 'cacheSize':
-        this.config.performance.cacheSize = await number({
+        const cacheSize = await number({
           message: 'Cache size (number of items):',
           default: this.config.performance.cacheSize,
           min: 10,
@@ -646,7 +682,7 @@ export class ConfigManager {
         });
         break;
       case 'cacheTTL':
-        this.config.performance.cacheTTL = await number({
+        const cacheTTL = await number({
           message: 'Cache TTL (seconds):',
           default: this.config.performance.cacheTTL,
           min: 60,
@@ -654,7 +690,7 @@ export class ConfigManager {
         });
         break;
       case 'parallelRequests':
-        this.config.performance.parallelRequests = await number({
+        const parallelRequests = await number({
           message: 'Max parallel requests:',
           default: this.config.performance.parallelRequests,
           min: 1,
@@ -662,7 +698,7 @@ export class ConfigManager {
         });
         break;
       case 'requestTimeout':
-        this.config.performance.requestTimeout = await number({
+        const requestTimeout = await number({
           message: 'Request timeout (milliseconds):',
           default: this.config.performance.requestTimeout,
           min: 5000,
@@ -704,7 +740,7 @@ export class ConfigManager {
         });
         break;
       case 'sessionTimeout':
-        this.config.security.sessionTimeout = await number({
+        const sessionTimeout = await number({
           message: 'Session timeout (seconds):',
           default: this.config.security.sessionTimeout,
           min: 300,

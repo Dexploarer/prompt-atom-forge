@@ -5,7 +5,7 @@
 
 import { input, select, confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
-import Table from 'cli-table3';
+import Table = require('cli-table3');
 import ora from 'ora';
 import { BaseManager } from './BaseManager.js';
 import { PromptChain, PromptChainStep, ChainCondition } from '../types.js';
@@ -133,7 +133,7 @@ export class ChainManager extends BaseManager<PromptChain> {
       metadata: {
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
         category,
-        difficulty: difficulty as any,
+        difficulty: difficulty as 'beginner' | 'intermediate' | 'advanced',
         estimatedTime: parseInt(estimatedTime)
       },
       createdAt: new Date(),
@@ -188,7 +188,7 @@ export class ChainManager extends BaseManager<PromptChain> {
         }
       });
 
-      const step: PromptChainStep = {
+      const step = {
         id: `step_${Date.now()}_${stepCounter}`,
         name: stepName,
         prompt,
@@ -198,7 +198,7 @@ export class ChainManager extends BaseManager<PromptChain> {
         retries: retries ? parseInt(retries) : undefined
       };
 
-      steps.push(step);
+      steps.push(step as PromptChainStep);
       stepCounter++;
 
       addingSteps = await confirm({
@@ -208,7 +208,13 @@ export class ChainManager extends BaseManager<PromptChain> {
 
     // Link steps together sequentially
     for (let i = 0; i < steps.length - 1; i++) {
-      steps[i].nextSteps.push(steps[i + 1].id);
+      if (steps[i] && steps[i + 1]) {
+        const currentStep = steps[i];
+        const nextStep = steps[i + 1];
+        if (currentStep && nextStep) {
+          currentStep.nextSteps.push(nextStep.id);
+        }
+      }
     }
 
     return steps;
@@ -284,16 +290,30 @@ export class ChainManager extends BaseManager<PromptChain> {
       // Simulate chain execution
       for (let i = 0; i < chain.steps.length; i++) {
         const step = chain.steps[i];
+        
+        if (!step) {
+          console.log(chalk.yellow(`\n⚠️  Step ${i + 1} is missing or invalid`));
+          continue;
+        }
+        
         spinner.text = `Executing step ${i + 1}/${chain.steps.length}: ${step.name}`;
         
         // Simulate processing time
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
         
         console.log(chalk.green(`\n✅ Step ${i + 1} completed: ${step.name}`));
-        console.log(chalk.gray(`   Prompt: ${step.prompt.substring(0, 100)}${step.prompt.length > 100 ? '...' : ''}`));
+        // Display truncated prompt text with ellipsis if needed
+        const truncatedPrompt = step.prompt.length > 100 
+          ? `${step.prompt.substring(0, 100)}...`
+          : step.prompt;
+        console.log(chalk.gray(`   Prompt: ${truncatedPrompt}`));
         
+        // Display truncated expected output if it exists
         if (step.expectedOutput) {
-          console.log(chalk.gray(`   Expected: ${step.expectedOutput.substring(0, 100)}${step.expectedOutput.length > 100 ? '...' : ''}`));
+          const truncatedOutput = step.expectedOutput.length > 100
+            ? `${step.expectedOutput.substring(0, 100)}...`
+            : step.expectedOutput;
+          console.log(chalk.gray(`   Expected: ${truncatedOutput}`));
         }
       }
       
@@ -302,7 +322,7 @@ export class ChainManager extends BaseManager<PromptChain> {
       
     } catch (error) {
       spinner.fail('Chain execution failed');
-      console.error(chalk.red('\n❌ Execution error:'), error.message);
+      console.error(chalk.red('\n❌ Execution error:'), error instanceof Error ? error.message : String(error));
     }
 
     await this.pressAnyKey();

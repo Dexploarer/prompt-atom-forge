@@ -162,7 +162,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
           default: 25
         });
 
-        secondaryEmotions.push({ emotion: secondaryEmotion, weight });
+secondaryEmotions.push({ emotion: secondaryEmotion, weight: weight ?? 0 });
 
         if (secondaryEmotions.length < 3) {
           addMore = await confirm({
@@ -190,15 +190,15 @@ export class EmotionManager extends BaseManager<EmotionalState> {
     });
     const responses = responsesInput ? responsesInput.split(',').map(response => response.trim()).filter(Boolean) : [];
 
-    const emotion: EmotionalState = {
+    const emotion = {
       id: Date.now().toString(),
       name,
       description: description || undefined,
       primaryEmotion,
-      intensity,
-      valence,
-      arousal,
-      dominance,
+      intensity: intensity ?? 50,
+      valence: valence ?? 0,
+      arousal: arousal ?? 50,
+      dominance: dominance ?? 50,
       secondaryEmotions: secondaryEmotions.map(se => se.emotion),
       context,
       triggers,
@@ -207,7 +207,10 @@ export class EmotionManager extends BaseManager<EmotionalState> {
       updatedAt: new Date()
     };
 
-    await this.save(emotion);
+await this.save({
+  ...emotion,
+  description: emotion.description ?? '' // Ensure description is never undefined
+});
     console.log(chalk.green(`\n✅ Emotional state '${name}' created successfully!`));
     await this.pressAnyKey();
   }
@@ -226,7 +229,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
 
     console.log(chalk.blue(`\n📋 Emotional States (${emotions.length} total)\n`));
 
-    const table = new Table({
+    const table = new Table.default({
       head: ['Name', 'Primary', 'Intensity', 'Valence', 'Context', 'Created'],
       colWidths: [20, 15, 10, 10, 25, 12]
     });
@@ -308,7 +311,24 @@ export class EmotionManager extends BaseManager<EmotionalState> {
         emotion.description = await input({
           message: 'New description:',
           default: emotion.description || ''
-        }) || undefined;
+        }) || '';
+        break;
+      case 'primaryEmotion':
+        emotion.primaryEmotion = await select({
+          message: 'New primary emotion:',
+          default: emotion.primaryEmotion,
+          choices: [
+            { name: '😊 Joy', value: 'joy' },
+            { name: '😢 Sadness', value: 'sadness' },
+            { name: '😠 Anger', value: 'anger' },
+            { name: '😨 Fear', value: 'fear' },
+            { name: '🤢 Disgust', value: 'disgust' },
+            { name: '😲 Surprise', value: 'surprise' },
+            { name: '🤔 Anticipation', value: 'anticipation' },
+            { name: '🙏 Trust', value: 'trust' },
+            { name: '😐 Neutral', value: 'neutral' }
+          ]
+        });
         break;
       case 'intensity':
         emotion.intensity = await number({
@@ -316,7 +336,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
           default: emotion.intensity,
           min: 0,
           max: 100
-        });
+        }) ?? emotion.intensity;
         break;
       case 'valence':
         emotion.valence = await number({
@@ -324,7 +344,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
           default: emotion.valence,
           min: -100,
           max: 100
-        });
+        }) ?? emotion.valence;
         break;
       case 'arousal':
         emotion.arousal = await number({
@@ -332,7 +352,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
           default: emotion.arousal,
           min: 0,
           max: 100
-        });
+        }) ?? emotion.arousal;
         break;
       case 'dominance':
         emotion.dominance = await number({
@@ -340,7 +360,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
           default: emotion.dominance,
           min: 0,
           max: 100
-        });
+        }) ?? emotion.dominance;
         break;
       case 'context':
         const contextInput = await input({
@@ -433,7 +453,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
 
     console.log(chalk.blue(`\n🔍 Search Results for '${query}' (${results.length} found)\n`));
 
-    const table = new Table({
+    const table = new Table.default({
       head: ['Name', 'Primary', 'Intensity', 'Context'],
       colWidths: [25, 15, 10, 30]
     });
@@ -504,7 +524,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
       }
     ];
 
-    const table = new Table({
+    const table = new Table.default({
       head: ['Preset', 'Primary', 'Intensity', 'Valence', 'Arousal', 'Context'],
       colWidths: [20, 12, 10, 10, 10, 25]
     });
@@ -543,19 +563,20 @@ export class EmotionManager extends BaseManager<EmotionalState> {
       const selectedPreset = presets[presetIndex];
       const name = await input({
         message: 'Name for this emotion:',
-        default: selectedPreset.name
+        default: selectedPreset?.name || ''
       });
 
       const emotion: EmotionalState = {
         id: Date.now().toString(),
         name,
-        primaryEmotion: selectedPreset.primary,
-        intensity: selectedPreset.intensity,
-        valence: selectedPreset.valence,
-        arousal: selectedPreset.arousal,
+        description: selectedPreset ? `Created from '${selectedPreset.name}' preset` : 'Created from preset',
+        primaryEmotion: selectedPreset?.primary ?? 'neutral',
+        intensity: selectedPreset?.intensity ?? 50,
+        valence: selectedPreset?.valence ?? 0,
+        arousal: selectedPreset?.arousal ?? 50,
         dominance: 50,
         secondaryEmotions: [],
-        context: selectedPreset.context,
+        context: selectedPreset ? [...selectedPreset.context] : [],
         triggers: [],
         responses: [],
         createdAt: new Date(),
@@ -614,7 +635,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
       default: 50
     });
 
-    const weight2 = 100 - weight1;
+    const weight2 = 100 - (weight1 ?? 50); // Default to 50 if weight1 is undefined
 
     // Blend the emotions
     const blendedName = await input({
@@ -626,11 +647,11 @@ export class EmotionManager extends BaseManager<EmotionalState> {
       id: Date.now().toString(),
       name: blendedName,
       description: `Blend of ${emotion1.name} (${weight1}%) and ${emotion2.name} (${weight2}%)`,
-      primaryEmotion: weight1 >= 50 ? emotion1.primaryEmotion : emotion2.primaryEmotion,
-      intensity: Math.round((emotion1.intensity * weight1 + emotion2.intensity * weight2) / 100),
-      valence: Math.round((emotion1.valence * weight1 + emotion2.valence * weight2) / 100),
-      arousal: Math.round((emotion1.arousal * weight1 + emotion2.arousal * weight2) / 100),
-      dominance: Math.round((emotion1.dominance * weight1 + emotion2.dominance * weight2) / 100),
+      primaryEmotion: (weight1 ?? 50) >= 50 ? emotion1.primaryEmotion : emotion2.primaryEmotion,
+      intensity: Math.round((emotion1.intensity * (weight1 ?? 50) + emotion2.intensity * weight2) / 100),
+      valence: Math.round((emotion1.valence * (weight1 ?? 50) + emotion2.valence * weight2) / 100),
+      arousal: Math.round((emotion1.arousal * (weight1 ?? 50) + emotion2.arousal * weight2) / 100),
+      dominance: Math.round((emotion1.dominance * (weight1 ?? 50) + emotion2.dominance * weight2) / 100),
       secondaryEmotions: [emotion1.primaryEmotion, emotion2.primaryEmotion],
       context: Array.from(new Set([...emotion1.context, ...emotion2.context])),
       triggers: Array.from(new Set([...emotion1.triggers, ...emotion2.triggers])),
@@ -732,7 +753,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
       writeFileSync(filename, JSON.stringify(exportData, null, 2));
       console.log(chalk.green(`\n✅ Emotions exported to '${filename}'`));
     } catch (error) {
-      console.error(chalk.red('\n❌ Export failed:'), error.message);
+      console.error(chalk.red('\n❌ Export failed:'), (error as Error).message);
     }
 
     await this.pressAnyKey();
@@ -788,7 +809,7 @@ export class EmotionManager extends BaseManager<EmotionalState> {
 
       console.log(chalk.green(`\n✅ Import completed: ${imported} imported, ${skipped} skipped`));
     } catch (error) {
-      console.error(chalk.red('\n❌ Import failed:'), error.message);
+      console.error(chalk.red('\n❌ Import failed:'), error instanceof Error ? error.message : String(error));
     }
 
     await this.pressAnyKey();

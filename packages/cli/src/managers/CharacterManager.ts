@@ -133,10 +133,19 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
         quirks: quirks.split(',').map(q => q.trim()).filter(q => q)
       },
       emotionalState: {
-        primary: primaryEmotion,
+        id: `emotion_${Date.now()}`,
+        name: `${primaryEmotion}_state`,
+        primaryEmotion: primaryEmotion,
         intensity: parseInt(intensity),
+        valence: 0, // Default neutral valence
+        arousal: parseInt(intensity) / 10, // Normalize intensity to 0-1 scale
+        dominance: 0.5, // Default medium dominance
+        secondaryEmotions: [],
+        context: [],
         triggers: [],
-        responses: {},
+        responses: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
         history: []
       },
       createdAt: new Date(),
@@ -330,7 +339,7 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
       table.push([
         char.name,
         char.description.substring(0, 37) + (char.description.length > 37 ? '...' : ''),
-        char.emotionalState.primary
+        char.emotionalState.primaryEmotion
       ]);
     });
 

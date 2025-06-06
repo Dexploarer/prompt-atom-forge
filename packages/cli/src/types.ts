@@ -94,6 +94,22 @@ export interface ChainCondition {
 }
 
 /**
+ * Contact interface
+ */
+export interface Contact {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  organization?: string;
+  role?: string;
+  notes?: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
  * CLI configuration interface
  */
 export interface CLIConfig {
