@@ -58,8 +58,10 @@ const PromptBuilder = ({ initialBlocks = [], onBlocksChange }: PromptBuilderProp
   const moveBlock = (fromIndex: number, toIndex: number) => {
     const newBlocks = [...blocks];
     const [movedBlock] = newBlocks.splice(fromIndex, 1);
-    newBlocks.splice(toIndex, 0, movedBlock);
-    setBlocks(newBlocks);
+    if (movedBlock) {
+      newBlocks.splice(toIndex, 0, movedBlock);
+      setBlocks(newBlocks);
+    }
   };
 
   const duplicateBlock = (id: string) => {

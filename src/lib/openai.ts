@@ -72,7 +72,7 @@ export const generateAIResponse = async (
     }
 
     const data = await response.json() as OpenAIResponse;
-    return data.choices[0].message.content;
+    return data.choices?.[0]?.message?.content || null;
   } catch (error: any) {
     const message =
       error.name === "TypeError"

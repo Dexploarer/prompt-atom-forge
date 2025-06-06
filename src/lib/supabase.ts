@@ -26,18 +26,24 @@ export async function signUp(email: string, password: string, handle: string) {
     }
 
     // Insert user data into the public.users table after successful auth signup
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: data.user.id,
-          email,
-          handle
-        });
+    if (data.user?.id && data.user?.email) {
+      const userEmail = data.user.email || email;
+      const userHandle = handle || userEmail.split('@')[0];
+      
+      // Ensure all required fields are strings
+      if (userEmail && userHandle) {
+        const { error: profileError } = await supabase
+          .from('users')
+          .upsert({
+            id: data.user.id,
+            email: userEmail,
+            handle: userHandle
+          });
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // Don't throw here as the auth user was created successfully
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't throw here as the auth user was created successfully
+        }
       }
     }
 

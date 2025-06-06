@@ -1,13 +1,13 @@
 'use client';
 
 import { CLIAuth } from '@/components/CLIAuth';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router-dom';
 import { Suspense } from 'react';
 
 function CLIAuthPageContent() {
   const searchParams = useSearchParams();
-  const mode = searchParams.get('mode') as 'login' | 'register' | 'both' || 'both';
-  const cliMode = searchParams.get('cli') === 'true';
+  const mode = searchParams[0].get('mode') as 'login' | 'register' | 'both' || 'both';
+  const cliMode = searchParams[0].get('cli') === 'true';
 
   const handleSuccess = (user: any) => {
     // Notify CLI of successful authentication

@@ -83,6 +83,9 @@ const BuilderPanel = ({
             onUpdateBlock={onUpdateBlock}
             onDeleteBlock={(block) => onRemoveBlock(block.id)}
             onDuplicateBlock={onDuplicateBlock}
+            onRemove={(id) => onRemoveBlock(id)}
+            onUpdate={onUpdateBlock}
+            onDuplicate={onDuplicateBlock}
             onDragStart={onDragStart}
             onDragOver={onDragOver}
             onDrop={onDrop}

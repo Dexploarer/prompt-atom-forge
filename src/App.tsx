@@ -16,6 +16,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AuthCallback from "./pages/AuthCallback";
 import TerminalWrapper from "./components/TerminalWrapper";
 import ProjectEditor from "./pages/ProjectEditor";
+import CLIAuthPage from "./app/cli-auth/page";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
                   <Route path="/docs" element={<Docs />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/cli-auth" element={<CLIAuthPage />} />
                   <Route path="/dashboard" element={
                     <ProtectedRoute>
                       <UserDashboard />

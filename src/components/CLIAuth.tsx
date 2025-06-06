@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
-import { CommandTerminal } from './CommandTerminal';
-import { CultHero } from './CultHero';
+import CommandTerminal from './CommandTerminal';
+import CultHero from './CultHero';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +31,7 @@ const cultPhrases = [
 ];
 
 export function CLIAuth({ mode = 'both', onSuccess, onClose, cliMode = false }: CLIAuthProps) {
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const [activeTab, setActiveTab] = useState(mode === 'register' ? 'register' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,7 +72,14 @@ export function CLIAuth({ mode = 'both', onSuccess, onClose, cliMode = false }: 
       setSuccess('🔮 Authentication successful! Welcome to the cult...');
       
       // Notify CLI of successful authentication
-      if (cliMode && window.opener) {
+      if (cliMode) {
+        // For CLI mode, redirect to dashboard with token
+        const redirectUrl = `/dashboard?token=${data.session?.access_token}&cli=true`;
+        window.location.href = redirectUrl;
+        return;
+      }
+      
+      if (window.opener) {
         window.opener.postMessage({
           type: 'AUTH_SUCCESS',
           user: data.user,
@@ -111,24 +118,38 @@ export function CLIAuth({ mode = 'both', onSuccess, onClose, cliMode = false }: 
       
       if (data.user) {
         // Insert user data
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
-            handle: handle || email.split('@')[0],
-            created_at: new Date().toISOString(),
-          });
-        
-        if (insertError) {
-          console.error('Error inserting user data:', insertError);
+        if (data.user?.id && data.user?.email) {
+          const userEmail = data.user.email || email;
+          const userHandle = handle || userEmail.split('@')[0];
+          
+          // Ensure all required fields are strings
+           if (userEmail && userHandle) {
+             const { error: insertError } = await supabase
+               .from('users')
+               .upsert({
+                 id: data.user.id,
+                 email: userEmail,
+                 handle: userHandle,
+               });
+          
+             if (insertError) {
+               console.error('Error inserting user data:', insertError);
+             }
+           }
         }
       }
       
       setSuccess('🔮 Welcome to the cult! Check your email to verify your account.');
       
       // Notify CLI of successful registration
-      if (cliMode && window.opener) {
+      if (cliMode && data.session) {
+        // For CLI mode, redirect to dashboard with token
+        const redirectUrl = `/dashboard?token=${data.session.access_token}&cli=true`;
+        window.location.href = redirectUrl;
+        return;
+      }
+      
+      if (window.opener) {
         window.opener.postMessage({
           type: 'AUTH_SUCCESS',
           user: data.user,
@@ -223,9 +244,8 @@ export function CLIAuth({ mode = 'both', onSuccess, onClose, cliMode = false }: 
           </div>
           
           <CommandTerminal 
-            commands={terminalCommands}
-            initialMessage="Welcome to the Cult Authentication Terminal. Type 'help' for commands."
-            prompt="cult@auth:~$"
+            isOpen={terminalMode}
+            onOpenChange={setTerminalMode}
           />
           
           <div className="mt-8 text-center">

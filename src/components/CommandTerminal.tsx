@@ -264,7 +264,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
     
     // Parse command and arguments
     const args = cmd.trim().split(' ');
-    const command = args[0].toLowerCase();
+    const command = args[0]?.toLowerCase() || '';
     
     // Process command
     switch (command) {
@@ -279,7 +279,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
         navigateTo(args[1]);
         break;
       case 'login':
-        if (args.length === 3) {
+        if (args.length === 3 && args[1] && args[2]) {
           // Direct login with command: login email password
           handleDirectLogin(args[1], args[2]);
         } else {
@@ -288,7 +288,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
         }
         break;
       case 'register':
-        if (args.length === 4) {
+        if (args.length === 4 && args[1] && args[2] && args[3]) {
           // Direct register with command: register handle email password
           handleDirectRegister(args[1], args[2], args[3]);
         } else {
@@ -420,7 +420,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
       return;
     }
     
-    const amount = parseFloat(args[0]);
+    const amount = parseFloat(args[0] || '0');
     
     if (isNaN(amount) || amount <= 0) {
       setOutputLines(prev => [...prev, { 
@@ -492,7 +492,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
       return;
     }
     
-    const amount = parseFloat(args[0]);
+    const amount = parseFloat(args[0] || '0');
     
     if (isNaN(amount) || amount <= 0) {
       setOutputLines(prev => [...prev, { 
@@ -920,7 +920,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
       return;
     }
     
-    const resourceType = args[0].toLowerCase();
+    const resourceType = args[0]?.toLowerCase() || '';
     
     switch (resourceType) {
       case 'project':
@@ -992,7 +992,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
       return;
     }
     
-    const resourceType = args[0].toLowerCase();
+    const resourceType = args[0]?.toLowerCase() || '';
     
     switch (resourceType) {
       case 'projects':
@@ -1154,7 +1154,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
     setHistoryIndex(newIndex);
     
     if (newIndex >= 0 && newIndex < commandHistory.length) {
-      setInput(commandHistory[newIndex]);
+      setInput(commandHistory[newIndex] || '');
     } else if (newIndex === -1) {
       setInput('');
     }
@@ -1189,7 +1189,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
     
     const matches = commands.filter(cmd => cmd.startsWith(input));
     
-    if (matches.length === 1) {
+    if (matches.length === 1 && matches[0]) {
       setInput(matches[0]);
     } else if (matches.length > 1) {
       setOutputLines(prev => [
@@ -1293,7 +1293,7 @@ const CommandTerminal: React.FC<CommandTerminalProps> = ({
                 // Only hide input when in password step
                 style={{ 
                   WebkitTextSecurity: authStep === 'password' ? 'disc' : 'none' 
-                }}
+                } as React.CSSProperties}
               />
             </div>
           </div>

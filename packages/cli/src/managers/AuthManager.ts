@@ -780,19 +780,54 @@ ${chalk.yellow('Troubleshooting:')}
        
        await open(authUrl);
        
-       // Wait for authentication completion
-       const waitForAuth = await confirm({
-         message: '🔮 Have you completed authentication in the web browser?',
-         default: true
+       // Set up message listener for web authentication
+       return new Promise((resolve) => {
+         const timeout = setTimeout(() => {
+           console.log(chalk.yellow('⏰ Authentication timeout. Please try again.'));
+           resolve(false);
+         }, 300000); // 5 minute timeout
+         
+         // Listen for authentication messages from the web app
+         const messageHandler = (event: any) => {
+           if (event.data && event.data.type === 'AUTH_SUCCESS') {
+             clearTimeout(timeout);
+             console.log(chalk.green('✅ Authentication successful!'));
+             
+             // Store the session data
+             if (event.data.session) {
+               this.currentSession = event.data.session;
+               this.currentUser = event.data.user;
+             }
+             
+             resolve(true);
+           } else if (event.data && event.data.type === 'AUTH_CANCELLED') {
+             clearTimeout(timeout);
+             console.log(chalk.yellow('❌ Authentication cancelled.'));
+             resolve(false);
+           }
+         };
+         
+         // For CLI, we'll use a polling mechanism instead of window messages
+         // since we can't listen to browser window messages from CLI
+         const pollForAuth = async () => {
+           const waitForAuth = await confirm({
+             message: '🔮 Have you completed authentication in the web browser?',
+             default: true
+           });
+           
+           if (waitForAuth) {
+             clearTimeout(timeout);
+             // Refresh session to check if user is now authenticated
+             await this.loadSession();
+             resolve(this.isAuthenticated());
+           } else {
+             clearTimeout(timeout);
+             resolve(false);
+           }
+         };
+         
+         pollForAuth();
        });
-       
-       if (waitForAuth) {
-         // Refresh session to check if user is now authenticated
-         await this.loadSession();
-         return this.isAuthenticated();
-       }
-       
-       return false;
      } catch (error) {
        console.error(chalk.red('❌ Error opening web authentication:'), error);
        return false;

@@ -5,7 +5,7 @@
 
 import { input, select, confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
-import Table = require('cli-table3');
+import Table from 'cli-table3';
 import ora from 'ora';
 import { BaseManager } from './BaseManager.js';
 import { PromptChain, PromptChainStep, ChainCondition } from '../types.js';
