@@ -10,29 +10,7 @@ import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
 import { Console } from 'console';
-import { MCPServerGenerator } from '../commands/core/src/mcp/generator.js';
-
-/**
- * MCP Project options interface
- */
-interface MCPProjectOptions {
-  name: string;
-  description: string | undefined;
-  transport: string;
-  storage: string;
-  auth: any | undefined;
-  deployment: any | undefined;
-  features: {
-    templates: boolean;
-    sharing: boolean;
-    analytics: boolean;
-    collaboration: boolean;
-    rateLimit: boolean | undefined;
-    caching: boolean | undefined;
-    logging: boolean | undefined;
-    healthCheck: boolean | undefined;
-  };
-}
+import { MCPServerGenerator, MCPProjectOptions } from 'prompt-or-die-core';
 
 /**
  * MCP manager class
@@ -213,27 +191,28 @@ export class MCPManager {
 
     const options: MCPProjectOptions = {
       name,
-      description: description || undefined,
+      description: description || `MCP Server for ${name}`,
       transport: transport as any,
       storage: storage as any,
       auth,
       deployment,
-      features: {
-        templates: features.includes('templates'),
-        sharing: features.includes('sharing'),
-        analytics: features.includes('analytics'),
-        collaboration: features.includes('collaboration'),
-        rateLimit: features.includes('rateLimit'),
-        caching: features.includes('caching'),
-        logging: features.includes('logging'),
-        healthCheck: features.includes('healthCheck')
-      }
+      ...(features.length > 0 && {
+        features: {
+          templates: features.includes('templates'),
+          sharing: features.includes('sharing'),
+          analytics: features.includes('analytics'),
+          collaboration: features.includes('collaboration')
+        }
+      })
     };
 
     const spinner = ora('Generating MCP server...').start();
 
     try {
-      const files = MCPServerGenerator.generateProject(options);
+      const files = MCPServerGenerator.generateProject({
+        ...options,
+        description: options.description || '' // Ensure description is never undefined
+      });
       const outputDir = `./${name}`;
 
       if (!existsSync(outputDir)) {

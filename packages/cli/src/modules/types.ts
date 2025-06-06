@@ -17,11 +17,11 @@ export interface MCPProjectOptions {
     platform: string;
     domain?: string;
   };
-  features: {
-    templates: boolean;
-    sharing: boolean;
-    analytics: boolean;
-    collaboration: boolean;
+  features?: {
+    templates?: boolean;
+    sharing?: boolean;
+    analytics?: boolean;
+    collaboration?: boolean;
   };
 }
 

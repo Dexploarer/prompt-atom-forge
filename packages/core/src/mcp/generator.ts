@@ -4,7 +4,7 @@
  * Generates MCP server projects with prompt-or-die functionality
  */
 
-import { MCPServerConfig } from './index.js';
+import { MCPServerConfig } from './index';
 
 /**
  * MCP Server project template options

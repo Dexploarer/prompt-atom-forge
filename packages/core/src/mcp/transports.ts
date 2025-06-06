@@ -4,7 +4,7 @@
  * Provides transport layer implementations for MCP servers
  */
 
-import { PromptOrDieMCPServer, MCPServerConfig } from './index.js';
+import { PromptOrDieMCPServer, MCPServerConfig } from './index';
 
 /**
  * Base transport interface

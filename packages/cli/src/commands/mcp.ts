@@ -4,7 +4,7 @@
  */
 
 import { Command } from 'commander';
-import { MCPServerGenerator, MCPProjectOptions } from '../../../core/src/mcp/generator.js';
+import { MCPServerGenerator, MCPProjectOptions } from 'prompt-or-die-core';
 import { writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs';
 import { join, dirname } from 'path';
 import { input, select, confirm, checkbox } from '@inquirer/prompts';
@@ -42,7 +42,7 @@ export function createMCPCommand(): Command {
         console.log(`   npm start`);
         
       } catch (error) {
-        console.error('❌ Failed to generate MCP server:', error.message);
+        console.error('❌ Failed to generate MCP server:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -95,7 +95,7 @@ export function createMCPCommand(): Command {
  * Gather project options through interactive prompts or CLI options
  */
 async function gatherProjectOptions(cliOptions: any): Promise<MCPProjectOptions> {
-  const options: MCPProjectOptions = {
+  const options: Partial<MCPProjectOptions> & { name: string; transport: MCPProjectOptions['transport']; storage: MCPProjectOptions['storage'] } = {
     name: '',
     transport: 'stdio',
     storage: 'memory'
@@ -111,7 +111,7 @@ async function gatherProjectOptions(cliOptions: any): Promise<MCPProjectOptions>
     options.transport = cliOptions.transport || 'stdio';
     options.storage = cliOptions.storage || 'memory';
     
-    return options;
+    return options as MCPProjectOptions;
   }
 
   // Interactive mode
@@ -194,7 +194,7 @@ async function gatherProjectOptions(cliOptions: any): Promise<MCPProjectOptions>
         default: 'oauth'
       });
 
-      options.auth = { type: authType };
+      options.auth = { type: authType as 'oauth' | 'api-key' | 'none' };
 
       if (authType === 'oauth') {
         options.auth.provider = await select({
@@ -229,7 +229,7 @@ async function gatherProjectOptions(cliOptions: any): Promise<MCPProjectOptions>
       default: 'local'
     });
 
-    options.deployment = { platform };
+    options.deployment = { platform: platform as 'local' | 'cloudflare' | 'vercel' | 'aws' | 'azure' };
 
     if (['cloudflare', 'vercel'].includes(platform)) {
       const domain = await input({
@@ -242,7 +242,7 @@ async function gatherProjectOptions(cliOptions: any): Promise<MCPProjectOptions>
         }
       });
       
-      if (domain) {
+      if (domain && options.deployment) {
         options.deployment.domain = domain;
       }
     }
@@ -262,11 +262,13 @@ async function gatherProjectOptions(cliOptions: any): Promise<MCPProjectOptions>
   if (features.length > 0) {
     options.features = {};
     features.forEach(feature => {
-      options.features![feature] = true;
+      if (feature === 'templates' || feature === 'sharing' || feature === 'analytics' || feature === 'collaboration') {
+        options.features![feature] = true;
+      }
     });
   }
 
-  return options;
+  return options as MCPProjectOptions;
 }
 
 /**

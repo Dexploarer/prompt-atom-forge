@@ -170,7 +170,7 @@ export class ImportExportManager {
       }
       
       if (backup.data.config) {
-        await this.configManager.importConfig(backup.data.config);
+        await this.configManager.importConfig();
       }
       
       spinner.succeed('All data imported successfully!');

@@ -172,10 +172,10 @@ export class PromptBuilder {
         name: 'Generated Prompt',
         prompt,
         nextSteps: [],
-        conditions: [],
-        variables: {}
+        conditions: []
       }],
       variables: {},
+      conditions: [],
       metadata: {
         tags: [metadata.type, metadata.tone],
         category: metadata.type,

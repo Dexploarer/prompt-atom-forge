@@ -9,7 +9,9 @@ export class PromptError extends Error {
     super(message);
     this.name = this.constructor.name;
     this.code = code;
-    this.details = details;
+    if (details !== undefined) {
+      this.details = details;
+    }
   }
 }
 
@@ -67,7 +69,9 @@ export class ApiError extends PromptError {
 
   constructor(message: string, status?: number, response?: unknown) {
     super(message, 'API_ERROR', { status, response });
-    this.status = status;
+    if (status !== undefined) {
+      this.status = status;
+    }
     this.response = response;
   }
 }
@@ -110,7 +114,9 @@ export class RateLimitError extends PromptError {
   
   constructor(message: string, resetInMs?: number, details?: Record<string, unknown>) {
     super(message, 'RATE_LIMIT_ERROR', { resetInMs, ...details });
-    this.resetInMs = resetInMs;
+    if (resetInMs !== undefined) {
+      this.resetInMs = resetInMs;
+    }
   }
 }
 
@@ -215,7 +221,7 @@ export const ErrorRecovery = {
     timeoutMs: number,
     timeoutMessage = 'Operation timed out'
   ): Promise<T> => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout | undefined;
     
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
@@ -225,10 +231,10 @@ export const ErrorRecovery = {
     
     try {
       const result = await Promise.race([operation(), timeoutPromise]);
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       return result as T;
     } catch (error) {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       throw error;
     }
   },
@@ -348,7 +354,7 @@ export const ErrorClassification = {
       return true;
     }
     
-    if (error instanceof ApiError && (error.status === 429 || error.status >= 500)) {
+    if (error instanceof ApiError && error.status && (error.status === 429 || error.status >= 500)) {
       return true;
     }
     
@@ -368,8 +374,8 @@ export const ErrorClassification = {
       return {
         message: error.message,
         code: error.code,
-        stack: error.stack,
-        details: error.details,
+        ...(error.stack && { stack: error.stack }),
+        ...(error.details && { details: error.details }),
       };
     }
     
@@ -377,7 +383,7 @@ export const ErrorClassification = {
       return {
         message: error.message,
         code: 'UNKNOWN_ERROR',
-        stack: error.stack,
+        ...(error.stack && { stack: error.stack }),
       };
     }
     
@@ -386,19 +392,4 @@ export const ErrorClassification = {
       code: 'UNKNOWN_ERROR',
     };
   },
-};
-
-/**
- * Create an enriched error instance with additional context
- */
-export function enrichError<T extends PromptError>(
-  error: T, 
-  context: Record<string, unknown>
-): T {
-  return Object.assign(error, { 
-    details: { 
-      ...error.details, 
-      ...context 
-    } 
-  });
 };

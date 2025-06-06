@@ -88,7 +88,7 @@ export class MCPServerGenerator {
           ]
         });
 
-        auth = { type: authType, provider: undefined };
+        auth = { type: authType as 'oauth' | 'api-key' | 'none' };
 
         if (authType === 'oauth') {
           auth.provider = await select({
@@ -120,13 +120,13 @@ export class MCPServerGenerator {
         ]
       });
 
-      deployment = { platform, domain: undefined };
+      deployment = { platform: platform as 'local' | 'cloudflare' | 'vercel' | 'aws' | 'azure' };
 
       if (platform !== 'local') {
         const domain = await input({
           message: 'Custom domain (optional):'
         });
-        if (domain) {
+        if (domain && deployment) {
           deployment.domain = domain;
         }
       }
@@ -134,17 +134,17 @@ export class MCPServerGenerator {
 
     const options: MCPProjectOptions = {
       name,
-      description: description || undefined,
-      transport,
-      storage,
-      auth,
-      deployment,
-      features: {
+      description: description || `MCP Server for ${name}`,
+      transport: transport as 'stdio' | 'sse' | 'streamable-http',
+      storage: storage as 'memory' | 'file' | 'database',
+      ...(auth ? { auth } : {}),
+      ...(deployment ? { deployment } : {}),
+      ...(features.length > 0 ? { features: {
         templates: features.includes('templates'),
         sharing: features.includes('sharing'),
         analytics: features.includes('analytics'),
         collaboration: features.includes('collaboration')
-      }
+      }} : {})
     };
 
     const spinner = ora('Generating MCP server...').start();

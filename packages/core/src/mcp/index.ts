@@ -4,7 +4,8 @@
  * Provides MCP server capabilities for prompt generation and management
  */
 
-import { PromptBlock, BlockType, InjectMode, buildPrompt, injectPrompt, BLOCK_TYPES, MODES } from '../index.js';
+import { BLOCK_TYPES, MODES, PromptBlock, BlockType, InjectMode } from '../constants';
+import { buildPrompt, injectPrompt } from '../utils';
 
 /**
  * MCP Server configuration options

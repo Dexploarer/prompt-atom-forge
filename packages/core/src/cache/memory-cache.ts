@@ -40,7 +40,6 @@ export class MemoryCache implements Cache {
       accessTimes: [],
       size: 0,
       hitRatio: 0,
-      averageAccessTimeMs: undefined,
     };
   }
 
@@ -247,7 +246,7 @@ export class MemoryCache implements Cache {
       }
       
       // Handle sliding expiration if enabled
-      const slidingExpiration = entry.metadata.custom?.slidingExpiration;
+      const slidingExpiration = entry.metadata.custom?.['slidingExpiration'];
       if (slidingExpiration && entry.metadata.expiresAt) {
         // Reset expiration based on current access time
         const ttl = entry.metadata.expiresAt - entry.metadata.createdAt;
@@ -279,15 +278,20 @@ export class MemoryCache implements Cache {
       this.stats.averageAccessTimeMs = sum / this.stats.accessTimes.length;
     }
 
-    return {
+    const result: CacheStats = {
       size: this.stats.size,
       hits: this.stats.hits,
       misses: this.stats.misses,
       hitRatio: this.stats.hitRatio,
-      averageAccessTimeMs: this.stats.averageAccessTimeMs || undefined,
       estimatedSize: this.estimateSize(),
       evictions: this.stats.evictions
     };
+    
+    if (this.stats.averageAccessTimeMs !== undefined) {
+      result.averageAccessTimeMs = this.stats.averageAccessTimeMs;
+    }
+    
+    return result;
   }
 
   /**
