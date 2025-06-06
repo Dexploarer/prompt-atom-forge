@@ -1,0 +1,43 @@
+{
+  "name": "@prompt-or-die/cli",
+  "version": "1.0.0",
+  "description": "Interactive CLI for Prompt or Die SDK",
+  "type": "module",
+  "main": "dist/interactive.js",
+  "bin": {
+    "prompt-or-die": "dist/interactive.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/interactive.js",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^5.3.8",
+    "chalk": "^5.3.0",
+    "figlet": "^1.7.0",
+    "boxen": "^7.1.1",
+    "ora": "^8.0.1",
+    "cli-table3": "^0.6.5",
+    "@prompt-or-die/core": "file:../core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/figlet": "^1.5.8",
+    "typescript": "^5.5.2",
+    "rimraf": "^5.0.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "cli",
+    "prompt",
+    "ai",
+    "mcp",
+    "interactive"
+  ],
+  "author": "Prompt or Die Team",
+  "license": "MIT"
+}

@@ -2,9 +2,6 @@
  * Comprehensive type definitions for the prompt-or-die core library
  */
 
-// Re-export core types
-export * from '../types';
-
 // Re-export utility types
 export * from './utility-types';
 

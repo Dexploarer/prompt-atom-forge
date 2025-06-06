@@ -17,41 +17,38 @@ export function sanitizeText(
     minLength?: number;
     allowHtml?: boolean;
     allowMarkdown?: boolean;
-  } = {
-    trim: true,
-    maxLength: undefined,
-    minLength: undefined,
-    allowHtml: false,
-    allowMarkdown: true,
-  }
+  } = {}
 ): { value: string; errors: ValidationErrorDetail[] } {
   let sanitized = input;
   const errors: ValidationErrorDetail[] = [];
   
+  // Apply defaults
+  const { trim = true, allowHtml = false, allowMarkdown = true, maxLength, minLength } = options;
+  
   // Basic sanitization
-  if (options.trim) {
+  if (trim) {
     sanitized = sanitized.trim();
   }
   
   // Basic validation
-  if (options.maxLength !== undefined && sanitized.length > options.maxLength) {
+  if (maxLength !== undefined && sanitized.length > maxLength) {
     errors.push({
       code: 'TEXT_TOO_LONG',
-      message: `Text exceeds maximum length of ${options.maxLength}`,
+      message: `Text exceeds maximum length of ${maxLength}`,
       path: []
     });
   }
   
-  if (options.minLength !== undefined && sanitized.length < options.minLength) {
+  if (minLength !== undefined && sanitized.length < minLength) {
     errors.push({
       code: 'TEXT_TOO_SHORT',
-      message: `Text is shorter than minimum length of ${options.minLength}`,
+      message: `Text is shorter than minimum length of ${minLength}`,
       path: []
     });
   }
   
   // HTML sanitization if not allowed
-  if (!options.allowHtml && /<[^>]*>/g.test(sanitized)) {
+  if (!allowHtml && /<[^>]*>/g.test(sanitized)) {
     // Basic HTML tag removal for sanitization
     sanitized = sanitized.replace(/<[^>]*>/g, '');
     errors.push({
@@ -77,9 +74,9 @@ export function validatePromptTemplate(
   
   // Extract all variables from the template
   while ((match = variablePattern.exec(template)) !== null) {
-    const variable = match[1].trim();
+    const variable = match[1]?.trim();
     
-    if (variable.length === 0) {
+    if (!variable || variable.length === 0) {
       errors.push({
         code: 'EMPTY_VARIABLE',
         message: 'Empty variable placeholder in template',

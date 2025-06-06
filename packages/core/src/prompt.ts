@@ -41,11 +41,11 @@ export const createBlock = <T>(
 
   // Validate the block before returning
   const block = { metadata, content };
-  const validationResult = validatePromptBlock(block);
+  const validationErrors = validatePromptBlock(block);
   
-  if (!validationResult.success) {
+  if (validationErrors.length > 0) {
     throw new PromptConstructionError('Invalid prompt block', {
-      errors: validationResult.errors
+      errors: validationErrors
     });
   }
 

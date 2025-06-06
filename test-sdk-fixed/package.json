@@ -1,0 +1,14 @@
+{
+  "name": "test-sdk-fixed",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A Prompt or Die project",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "prompt-or-die": "file:.."
+  }
+}

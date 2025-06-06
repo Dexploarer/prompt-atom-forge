@@ -323,8 +323,8 @@ export class DefaultMetricRegistry implements MetricRegistry {
     if (sortedValues.length > 0) {
       const midIndex = Math.floor(sortedValues.length / 2);
       metric.median = sortedValues.length % 2 === 0
-        ? (sortedValues[midIndex - 1] + sortedValues[midIndex]) / 2
-        : sortedValues[midIndex];
+        ? (sortedValues[midIndex - 1]! + sortedValues[midIndex]!) / 2
+        : sortedValues[midIndex]!;
       
       // Calculate percentiles (if we have enough values)
       if (sortedValues.length > 20) { // Only calculate percentiles with enough data points
