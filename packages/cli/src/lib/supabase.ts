@@ -1,65 +1,109 @@
 import { createClient } from '@supabase/supabase-js';
+import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import type { Database } from '@/lib/database.types';
 
-// Default Supabase configuration
-const DEFAULT_SUPABASE_URL = 'https://your-project.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'your-anon-key';
+// PGlite local database instance
+let pgliteInstance: PGlite | null = null;
 
-// Try to load Supabase config from various sources
+// Get Supabase config - prioritize user configuration over defaults
 function getSupabaseConfig() {
-  // 1. Try environment variables
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  // 1. Check environment variables first
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
     return {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      url: process.env.SUPABASE_URL,
+      anonKey: process.env.SUPABASE_ANON_KEY,
+      projectId: extractProjectId(process.env.SUPABASE_URL)
     };
   }
 
-  // 2. Try to read from web app's .env.local
-  const webAppEnvPath = join(process.cwd(), '../../.env.local');
-  if (existsSync(webAppEnvPath)) {
-    try {
-      const envContent = readFileSync(webAppEnvPath, 'utf-8');
-      const urlMatch = envContent.match(/NEXT_PUBLIC_SUPABASE_URL=(.+)/);
-      const keyMatch = envContent.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(.+)/);
-      
-      if (urlMatch && keyMatch && urlMatch[1] && keyMatch[1]) {
+  // 2. Check CLI config file
+  try {
+    const configDir = join(homedir(), '.prompt-or-die');
+    const configFile = join(configDir, 'config.json');
+    if (existsSync(configFile)) {
+      const config = JSON.parse(readFileSync(configFile, 'utf-8'));
+      if (config.supabase?.url && config.supabase?.anonKey) {
         return {
-          url: urlMatch[1].trim(),
-          anonKey: keyMatch[1].trim()
+          url: config.supabase.url,
+          anonKey: config.supabase.anonKey,
+          projectId: extractProjectId(config.supabase.url)
         };
       }
-    } catch (error) {
-      console.warn('Could not read web app environment file:', error);
     }
+  } catch (error) {
+    console.warn('Error reading CLI config:', error);
   }
 
-  // 3. Try to read from CLI config directory
-  const cliConfigPath = join(homedir(), '.prompt-or-die', 'supabase.json');
-  if (existsSync(cliConfigPath)) {
-    try {
-      const config = JSON.parse(readFileSync(cliConfigPath, 'utf-8'));
-      if (config.url && config.anonKey) {
-        return config;
-      }
-    } catch (error) {
-      console.warn('Could not read CLI Supabase config:', error);
-    }
-  }
+  // 3. Default to null (will use PGlite)
+  return null;
+}
 
-  // 4. Fall back to defaults (user will need to configure)
-  return {
-    url: DEFAULT_SUPABASE_URL,
-    anonKey: DEFAULT_SUPABASE_ANON_KEY
-  };
+function extractProjectId(url: string): string {
+  const match = url.match(/https:\/\/([^.]+)\.supabase\.co/);
+  return match ? match[1]! : 'unknown';
 }
 
 const config = getSupabaseConfig();
 
-export const supabase = createClient<Database>(config.url, config.anonKey, {
+// Initialize PGlite for local development
+async function initPGlite(): Promise<PGlite> {
+  if (!pgliteInstance) {
+    const configDir = join(homedir(), '.prompt-or-die');
+    const dbPath = join(configDir, 'local.db');
+    
+    // Ensure directory exists
+    const fs = require('fs-extra');
+    fs.ensureDirSync(configDir);
+    
+    pgliteInstance = new PGlite(dbPath);
+    
+    // Initialize basic schema for local development
+    await initLocalSchema(pgliteInstance);
+  }
+  return pgliteInstance;
+}
+
+// Initialize local database schema
+async function initLocalSchema(db: PGlite): Promise<void> {
+  try {
+    // Create basic tables for local development
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS user_settings (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        settings JSONB DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      
+      CREATE TABLE IF NOT EXISTS prompt_chains (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        user_id TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      
+      CREATE TABLE IF NOT EXISTS characters (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        user_id TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+  } catch (error) {
+    console.warn('Error initializing local schema:', error);
+  }
+}
+
+// Create Supabase client only if configured
+export const supabase = config ? createClient<Database>(config.url, config.anonKey, {
   auth: {
     persistSession: true,
     storageKey: 'prompt-or-die-cli-auth',
@@ -115,7 +159,29 @@ export const supabase = createClient<Database>(config.url, config.anonKey, {
       }
     }
   }
-});
+}) : null;
+
+// Database abstraction layer
+export async function getDatabase() {
+  if (supabase) {
+    return { type: 'supabase' as const, client: supabase };
+  } else {
+    const pglite = await initPGlite();
+    return { type: 'pglite' as const, client: pglite };
+  }
+}
+
+// Helper function to execute queries on PGlite only
+export async function executeQuery(sql: string, params?: any[]) {
+  const db = await getDatabase();
+  
+  if (db.type === 'supabase') {
+    // For Supabase, we'd need to use the appropriate method based on the query
+    throw new Error('Raw SQL execution not supported with Supabase client. Use specific methods instead.');
+  } else {
+    return await (db.client as PGlite).query(sql, params);
+  }
+}
 
 export interface User {
   id: string;
@@ -134,6 +200,10 @@ export interface AuthSession {
 
 // Helper functions for CLI authentication
 export async function signInWithEmail(email: string, password: string) {
+  if (!supabase) {
+    throw new Error('Authentication requires Supabase configuration. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables or configure via CLI.');
+  }
+  
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
@@ -144,6 +214,10 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signUpWithEmail(email: string, password: string, handle?: string) {
+  if (!supabase) {
+    throw new Error('Authentication requires Supabase configuration. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables or configure via CLI.');
+  }
+  
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -178,17 +252,29 @@ export async function signUpWithEmail(email: string, password: string, handle?: 
 }
 
 export async function signOut() {
+  if (!supabase) {
+    throw new Error('Authentication requires Supabase configuration.');
+  }
+  
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
 
 export async function getCurrentUser() {
+  if (!supabase) {
+    return null; // No authentication in local mode
+  }
+  
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) throw error;
   return user;
 }
 
 export async function getCurrentSession() {
+  if (!supabase) {
+    return null; // No sessions in local mode
+  }
+  
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error) throw error;
   return session;
@@ -196,13 +282,69 @@ export async function getCurrentSession() {
 
 // Check if Supabase is properly configured
 export function isSupabaseConfigured(): boolean {
-  return config.url !== DEFAULT_SUPABASE_URL && config.anonKey !== DEFAULT_SUPABASE_ANON_KEY;
+  return config !== null;
+}
+
+// Check if using local PGlite database
+export function isUsingLocalDatabase(): boolean {
+  return config === null;
 }
 
 // Get current configuration
 export function getSupabaseConfigInfo() {
-  return {
-    url: config.url,
-    configured: isSupabaseConfigured()
-  };
+  if (config) {
+    return {
+      url: config.url,
+      projectId: config.projectId,
+      configured: true,
+      mode: 'remote'
+    };
+  } else {
+    return {
+      configured: false,
+      mode: 'local',
+      database: 'PGlite'
+    };
+  }
+}
+
+// Local database operations for PGlite
+export async function insertUserSettings(userId: string, settings: any) {
+  const db = await getDatabase();
+  
+  if (db.type === 'supabase') {
+    const { error } = await db.client
+      .from('user_settings')
+      .insert({
+        user_id: userId,
+        settings,
+        created_at: new Date().toISOString()
+      });
+    if (error) throw error;
+  } else {
+    await (db.client as PGlite).query(
+      'INSERT INTO user_settings (user_id, settings, created_at) VALUES ($1, $2, $3)',
+      [userId, JSON.stringify(settings), new Date().toISOString()]
+    );
+  }
+}
+
+export async function getUserSettings(userId: string) {
+  const db = await getDatabase();
+  
+  if (db.type === 'supabase') {
+    const { data, error } = await db.client
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const result = await (db.client as PGlite).query(
+      'SELECT * FROM user_settings WHERE user_id = $1 LIMIT 1',
+      [userId]
+    );
+    return result.rows[0] || null;
+  }
 }

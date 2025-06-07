@@ -1,12 +1,15 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "emitDeclarationOnly": false,
     "outDir": "./dist",
-    "rootDir": "../..",
+    "rootDir": "./src",
     "module": "CommonJS",
     "target": "ES2022",
     "moduleResolution": "node",
-    "baseUrl": "../..",
+    "noEmit": false,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@/lib/*": ["./src/lib/*"]
