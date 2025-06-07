@@ -393,7 +393,7 @@ const execAsync = promisify(exec);
         }
       }
       
-      const authUrl = `${this.config.webAppUrl || 'http://localhost:3000'}/auth?${params.toString()}`;
+      const authUrl = `${this.config.webAppUrl || 'http://www.promptordie.tech'}/auth?${params.toString()}`;
       
       // Open web browser
       const platform = process.platform;
@@ -452,30 +452,32 @@ const execAsync = promisify(exec);
     const spinner = ora('Checking authentication status...').start();
     
     try {
-      // In a real implementation, this would check for a session token
-      // or poll an endpoint to see if auth was completed
-      // For now, we'll simulate this
+      // Check for current session from Supabase
+      const currentUser = await getCurrentUser();
       
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock successful authentication
-      const mockSession: AuthSession = {
-        user: {
-          id: 'user_' + Date.now(),
-          email: 'user@example.com',
-          handle: 'cultmember',
-          created_at: new Date().toISOString()
-        },
-        access_token: 'mock_access_token',
-        refresh_token: 'mock_refresh_token',
-        expires_at: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
-      };
-      
-      this.currentSession = mockSession;
-      this.currentUser = mockSession.user;
-      
-      spinner.succeed('Authentication successful!');
-      console.log(chalk.green('\n✨ Welcome to the Circle! Your authentication is complete.\n'));
+      if (currentUser) {
+        // Convert Supabase user to our AuthSession format
+        const session: AuthSession = {
+          user: {
+            id: currentUser.id,
+            email: currentUser.email || '',
+            handle: currentUser.user_metadata?.handle || currentUser.email?.split('@')[0] || 'user',
+            created_at: currentUser.created_at
+          },
+          access_token: 'supabase_session_token',
+          refresh_token: 'supabase_refresh_token',
+          expires_at: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
+        };
+        
+        this.currentSession = session;
+        this.currentUser = session.user;
+        
+        spinner.succeed('Authentication successful!');
+        console.log(chalk.green('\n✨ Welcome to the Circle! Your authentication is complete.\n'));
+      } else {
+        spinner.fail('No active session found');
+        console.log(chalk.yellow('\n⚠️ Please complete authentication in the web browser.\n'));
+      }
       
     } catch (error) {
       spinner.fail('Authentication check failed');
@@ -543,7 +545,7 @@ const execAsync = promisify(exec);
     const spinner = ora('Summoning the Sacred Web Portal...').start();
     
     try {
-      let url = this.config.webAppUrl || 'http://localhost:3000';
+      let url = this.config.webAppUrl || 'http://www.promptordie.tech';
       
       if (authenticated && this.currentSession) {
         // Add auth token to URL for auto-login
@@ -772,7 +774,7 @@ ${chalk.yellow('Troubleshooting:')}
          return false;
        }
        
-       const webUrl = this.config.webAppUrl || 'http://localhost:3000';
+       const webUrl = this.config.webAppUrl || 'http://www.promptordie.tech';
        const authUrl = `${webUrl}/cli-auth?mode=${mode === 'both' ? 'login' : mode}&cli=true`;
        
        console.log(chalk.cyan('🌐 Opening web authentication portal...'));

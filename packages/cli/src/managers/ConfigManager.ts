@@ -10,6 +10,7 @@ import { homedir } from 'os';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { CLIConfig } from '../types.js';
+import { EnvironmentManager } from './EnvironmentManager.js';
 
 /**
  * Configuration manager class
@@ -17,10 +18,12 @@ import { CLIConfig } from '../types.js';
 export class ConfigManager {
   private configPath: string;
   private config: CLIConfig;
+  private environmentManager: EnvironmentManager;
 
   constructor() {
     this.configPath = join(homedir(), '.prompt-or-die', 'config.json');
     this.config = this.loadConfig();
+    this.environmentManager = new EnvironmentManager();
   }
 
   /**
@@ -32,6 +35,7 @@ export class ConfigManager {
       choices: [
         { name: '⚙️ View Current Config', value: 'view' },
         { name: '✏️ Edit Settings', value: 'edit' },
+        { name: '🔑 Environment & AI Models', value: 'environment' },
         { name: '🔄 Reset to Defaults', value: 'reset' },
         { name: '📤 Export Config', value: 'export' },
         { name: '📥 Import Config', value: 'import' },
@@ -47,6 +51,9 @@ export class ConfigManager {
         break;
       case 'edit':
         await this.editSettings();
+        break;
+      case 'environment':
+        await this.manageEnvironment();
         break;
       case 'reset':
         await this.resetConfig();
@@ -804,6 +811,14 @@ export class ConfigManager {
 
     this.saveConfig();
     console.log(chalk.green('\n✅ Theme updated successfully!'));
+    await this.pressAnyKey();
+  }
+
+  /**
+   * Manage environment variables and AI models
+   */
+  async manageEnvironment(): Promise<void> {
+    await this.environmentManager.showMenu();
     await this.pressAnyKey();
   }
 

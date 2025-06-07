@@ -11,6 +11,8 @@ import { CharacterManager } from './managers/CharacterManager.js';
 import { EmotionManager } from './managers/EmotionManager.js';
 import { ChainManager } from './managers/ChainManager.js';
 import { MCPManager } from './managers/MCPManager.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import { ConfigManager } from './managers/ConfigManager.js';
 import { ContactManager } from './managers/ContactManager.js';
 import { AuthManager } from './managers/AuthManager.js';
@@ -41,7 +43,7 @@ export class InteractiveCLI {
     const dataDir = this.configManager.getConfig().dataDir || process.env.HOME + '/.prompt-or-die';
     
     // Initialize managers
-    this.characterManager = new CharacterManager(dataDir);
+    this.characterManager = new CharacterManager();
     this.emotionManager = new EmotionManager(dataDir);
     this.chainManager = new ChainManager(dataDir);
     this.mcpManager = new MCPManager();
@@ -342,7 +344,9 @@ export class InteractiveCLI {
 export default InteractiveCLI;
 
 // Main execution
-if (require.main === module) {
+const currentFile = fileURLToPath(import.meta.url);
+const scriptPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
+if (currentFile === scriptPath) {
   const cli = new InteractiveCLI();
   cli.start().catch((error) => {
     console.error(chalk.red('Fatal error:'), error);

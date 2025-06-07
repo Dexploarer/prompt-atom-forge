@@ -10,7 +10,7 @@ import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
 import { Console } from 'console';
-import { MCPServerGenerator, MCPProjectOptions } from 'prompt-or-die-core';
+import { MCPServerGenerator, type MCPProjectOptions } from 'prompt-or-die-core';
 
 /**
  * MCP manager class

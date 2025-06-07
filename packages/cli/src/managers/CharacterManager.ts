@@ -8,13 +8,23 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import { BaseManager } from './BaseManager.js';
 import { CharacterSheet, EmotionalState } from '../types.js';
+import { EmotionManager } from './EmotionManager.js';
+import { CharacterFileManager } from './CharacterFileManager.js';
+import { join } from 'path';
+import { homedir } from 'os';
 
 /**
  * Character manager class
  */
 export class CharacterManager extends BaseManager<CharacterSheet> {
-  constructor(dataDir: string) {
+  private emotionManager: EmotionManager;
+  private fileManager: CharacterFileManager;
+
+  constructor() {
+    const dataDir = join(homedir(), '.prompt-or-die', 'data');
     super(dataDir, 'characters.json');
+    this.emotionManager = new EmotionManager(dataDir);
+    this.fileManager = new CharacterFileManager();
   }
 
   /**
@@ -28,6 +38,8 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
         { name: '📋 List Characters', value: 'list' },
         { name: '✏️  Edit Character', value: 'edit' },
         { name: '🗑️  Delete Character', value: 'delete' },
+        { name: '📤 Export Character Files', value: 'export' },
+        { name: '📦 Export All Characters', value: 'export-all' },
         { name: '📊 Character Analytics', value: 'analytics' },
         { name: '🔍 Search Characters', value: 'search' },
         { name: '🔙 Back to Main Menu', value: 'back' }
@@ -46,6 +58,12 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
         break;
       case 'delete':
         await this.deleteCharacter();
+        break;
+      case 'export':
+        await this.exportCharacter();
+        break;
+      case 'export-all':
+        await this.exportAllCharacters();
         break;
       case 'analytics':
         await this.showAnalytics();
@@ -119,7 +137,90 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
       }
     });
 
-    const character: CharacterSheet = {
+    // AI Model Configuration
+    const configureAI = await confirm({
+      message: 'Configure AI model for this character?',
+      default: true
+    });
+
+    let aiModel: CharacterSheet['aiModel'] | undefined;
+    if (configureAI) {
+      const provider = await select({
+        message: 'Select AI provider:',
+        choices: [
+          { name: 'OpenAI (GPT-4, GPT-3.5)', value: 'openai' },
+          { name: 'Anthropic (Claude)', value: 'anthropic' },
+          { name: 'Google (Gemini)', value: 'google' },
+          { name: 'Groq (Fast inference)', value: 'groq' },
+          { name: 'Cohere', value: 'cohere' },
+          { name: 'Local/Custom', value: 'local' }
+        ]
+      }) as 'openai' | 'anthropic' | 'google' | 'groq' | 'cohere' | 'local';
+
+      const modelChoices = this.getModelChoicesForProvider(provider);
+      const model = await select({
+        message: 'Select model:',
+        choices: modelChoices
+      });
+
+      aiModel = {
+        provider,
+        model
+      };
+
+      // API Key configuration
+      const useCustomKey = await confirm({
+        message: 'Use custom API key for this character? (Otherwise uses global config)',
+        default: false
+      });
+
+      if (useCustomKey) {
+        const apiKey = await input({
+          message: `Enter ${provider.toUpperCase()} API key:`,
+          validate: (value) => value.length > 0 || 'API key is required'
+        });
+        aiModel.apiKey = apiKey;
+      }
+
+      // Advanced settings
+      const configureAdvanced = await confirm({
+        message: 'Configure advanced model settings?',
+        default: false
+      });
+
+      if (configureAdvanced) {
+        if (provider === 'local') {
+          aiModel.baseUrl = await input({
+            message: 'Base URL:',
+            default: 'http://localhost:1234/v1'
+          });
+        }
+
+        const maxTokensInput = await input({
+          message: 'Max tokens (default: 4000):',
+          default: '4000',
+          validate: (value: string) => {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 1) return 'Please enter a valid number';
+            return true;
+          }
+        });
+        aiModel.maxTokens = parseInt(maxTokensInput);
+
+        const temperatureInput = await input({
+          message: 'Temperature (0.0-2.0, default: 0.7):',
+          default: '0.7',
+          validate: (value: string) => {
+            const num = parseFloat(value);
+            if (isNaN(num) || num < 0 || num > 2) return 'Please enter a number between 0.0 and 2.0';
+            return true;
+          }
+        });
+        aiModel.temperature = parseFloat(temperatureInput);
+      }
+    }
+
+    const character = {
       id: `char_${Date.now()}`,
       name,
       description,
@@ -148,11 +249,18 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
         updatedAt: new Date(),
         history: []
       },
+      aiModel: aiModel || undefined,
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    this.save(character);
+    this.save({
+      ...character,
+      aiModel: character.aiModel || {
+        provider: 'openai',
+        model: 'gpt-3.5-turbo'
+      }
+    });
     console.log(chalk.green(`\n✅ Character '${name}' created successfully!`));
     await this.pressAnyKey();
   }
@@ -170,18 +278,20 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
     }
 
     const table = new Table({
-      head: ['ID', 'Name', 'Primary Emotion', 'Traits', 'Created'],
-      colWidths: [15, 20, 15, 15, 12]
+      head: ['ID', 'Name', 'Primary Emotion', 'AI Model', 'Traits', 'Created'],
+      colWidths: [15, 20, 15, 20, 10, 12]
     });
 
     characters.forEach(char => {
       const traitCount = char.traits.strengths.length + char.traits.weaknesses.length + char.traits.quirks.length;
+      const aiModelInfo = char.aiModel ? `${char.aiModel.provider}/${char.aiModel.model}` : 'None';
       table.push([
         char.id.substring(0, 12) + '...',
         char.name,
         char.emotionalState.primaryEmotion,
+        aiModelInfo.substring(0, 18) + (aiModelInfo.length > 18 ? '...' : ''),
         traitCount.toString(),
-        new Date(char.createdAt).toLocaleDateString()
+        char.createdAt.toLocaleDateString()
       ]);
     });
 
@@ -349,6 +459,101 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
   }
 
   /**
+   * Show character details
+   */
+  async showCharacter(characterId?: string): Promise<void> {
+    const characters = this.loadAll();
+    
+    if (characters.length === 0) {
+      console.log(chalk.yellow('\n📭 No characters found. Create one first!'));
+      await this.pressAnyKey();
+      return;
+    }
+
+    let character;
+    
+    if (characterId) {
+      character = this.findById(characterId);
+      if (!character) {
+        console.log(chalk.red(`\n❌ Character with ID '${characterId}' not found!`));
+        await this.pressAnyKey();
+        return;
+      }
+    } else {
+      const choices = characters.map(char => ({
+        name: `${char.name} (${char.emotionalState.primaryEmotion})`,
+        value: char.id
+      }));
+
+      const selectedId = await select({
+        message: 'Select character to view:',
+        choices
+      });
+
+      character = this.findById(selectedId);
+      if (!character) {
+        console.log(chalk.red('\n❌ Character not found!'));
+        await this.pressAnyKey();
+        return;
+      }
+    }
+
+    console.log(chalk.blue(`\n👤 Character Details: ${character.name}\n`));
+    console.log(`${chalk.bold('ID:')} ${character.id}`);
+    console.log(`${chalk.bold('Name:')} ${character.name}`);
+    console.log(`${chalk.bold('Description:')} ${character.description}`);
+    console.log(`${chalk.bold('Background:')} ${character.background}`);
+    
+    if (character.personality.length > 0) {
+      console.log(`${chalk.bold('Personality:')} ${character.personality.join(', ')}`);
+    }
+    
+    if (character.goals.length > 0) {
+      console.log(`${chalk.bold('Goals:')} ${character.goals.join(', ')}`);
+    }
+    
+    console.log(`${chalk.bold('Relationships:')} ${Object.keys(character.relationships).length} defined`);
+    console.log(`${chalk.bold('Primary Emotion:')} ${character.emotionalState.primaryEmotion}`);
+    console.log(`${chalk.bold('Emotional Intensity:')} ${character.emotionalState.intensity}/10`);
+    
+    if (character.traits.strengths.length > 0) {
+      console.log(`${chalk.bold('Strengths:')} ${character.traits.strengths.join(', ')}`);
+    }
+    
+    if (character.traits.weaknesses.length > 0) {
+      console.log(`${chalk.bold('Weaknesses:')} ${character.traits.weaknesses.join(', ')}`);
+    }
+    
+    if (character.traits.quirks.length > 0) {
+      console.log(`${chalk.bold('Quirks:')} ${character.traits.quirks.join(', ')}`);
+    }
+    
+    // AI Model Information
+    if (character.aiModel) {
+      console.log(`${chalk.bold('AI Model:')} ${character.aiModel.provider}/${character.aiModel.model}`);
+      if (character.aiModel.apiKey) {
+        console.log(`${chalk.bold('Custom API Key:')} ${chalk.green('✓ Configured')}`);
+      }
+      if (character.aiModel.maxTokens) {
+        console.log(`${chalk.bold('Max Tokens:')} ${character.aiModel.maxTokens}`);
+      }
+      if (character.aiModel.temperature) {
+        console.log(`${chalk.bold('Temperature:')} ${character.aiModel.temperature}`);
+      }
+      if (character.aiModel.baseUrl) {
+        console.log(`${chalk.bold('Base URL:')} ${character.aiModel.baseUrl}`);
+      }
+    } else {
+      console.log(`${chalk.bold('AI Model:')} ${chalk.yellow('Not configured')}`);
+    }
+    
+    console.log(`${chalk.bold('Created:')} ${new Date(character.createdAt).toLocaleString()}`);
+    console.log(`${chalk.bold('Updated:')} ${new Date(character.updatedAt).toLocaleString()}`);
+    
+    await this.pressAnyKey();
+  }
+
+  /**
    * Show character analytics
    */
   async showAnalytics(): Promise<void> {
@@ -384,11 +589,167 @@ export class CharacterManager extends BaseManager<CharacterSheet> {
   }
 
   /**
+   * Get model choices for a specific provider
+   */
+  private getModelChoicesForProvider(provider: string): Array<{name: string, value: string}> {
+    switch (provider) {
+      case 'openai':
+        return [
+          { name: 'GPT-4 Turbo', value: 'gpt-4-turbo-preview' },
+          { name: 'GPT-4', value: 'gpt-4' },
+          { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
+          { name: 'GPT-3.5 Turbo 16k', value: 'gpt-3.5-turbo-16k' }
+        ];
+      case 'anthropic':
+        return [
+          { name: 'Claude 3 Opus', value: 'claude-3-opus-20240229' },
+          { name: 'Claude 3 Sonnet', value: 'claude-3-sonnet-20240229' },
+          { name: 'Claude 3 Haiku', value: 'claude-3-haiku-20240307' },
+          { name: 'Claude 2.1', value: 'claude-2.1' },
+          { name: 'Claude 2.0', value: 'claude-2.0' }
+        ];
+      case 'google':
+        return [
+          { name: 'Gemini Pro', value: 'gemini-pro' },
+          { name: 'Gemini Pro Vision', value: 'gemini-pro-vision' }
+        ];
+      case 'groq':
+        return [
+          { name: 'Mixtral 8x7B', value: 'mixtral-8x7b-32768' },
+          { name: 'LLaMA2 70B', value: 'llama2-70b-4096' },
+          { name: 'Gemma 7B', value: 'gemma-7b-it' }
+        ];
+      case 'cohere':
+        return [
+          { name: 'Command', value: 'command' },
+          { name: 'Command Light', value: 'command-light' },
+          { name: 'Command Nightly', value: 'command-nightly' }
+        ];
+      case 'local':
+        return [
+          { name: 'Custom Local Model', value: 'local-model' },
+          { name: 'Ollama Model', value: 'ollama' },
+          { name: 'LM Studio', value: 'lm-studio' }
+        ];
+      default:
+        return [{ name: 'Default Model', value: 'default' }];
+    }
+  }
+
+  /**
+   * Export a single character to file
+   */
+  private async exportCharacter(): Promise<void> {
+    const characters = this.loadAll();
+    if (characters.length === 0) {
+      console.log(chalk.yellow('No characters found to export.'));
+      return;
+    }
+
+    // Select character to export
+    const characterChoices = characters.map((char: CharacterSheet) => ({
+      name: `${char.name} - ${char.description}`,
+      value: char.id
+    }));
+
+    const selectedId = await select({
+      message: 'Select character to export:',
+      choices: characterChoices
+    });
+
+    const character = characters.find((c: CharacterSheet) => c.id === selectedId);
+    if (!character) {
+      console.log(chalk.red('Character not found.'));
+      return;
+    }
+
+    // Select export format
+    const format = await select({
+      message: 'Select export format:',
+      choices: [
+        { name: 'JSON (recommended)', value: 'json' },
+        { name: 'YAML', value: 'yaml' },
+        { name: 'Environment Variables (.env)', value: 'env' }
+      ]
+    }) as 'json' | 'yaml' | 'env';
+
+    try {
+      const filepath = await this.fileManager.exportCharacterFile(character, format);
+      console.log(chalk.green(`\n✅ Character exported successfully!`));
+      console.log(chalk.cyan(`📁 File location: ${filepath}`));
+      console.log(chalk.gray(`💡 You can now use this file in your applications or share it with others.`));
+      
+      if (character.aiModel) {
+        console.log(chalk.yellow(`\n⚠️  Note: Make sure to configure your API keys before using this character.`));
+        if (character.aiModel.apiKey) {
+          console.log(chalk.yellow(`🔑 API Key: ${character.aiModel.apiKey ? 'Configured' : 'Not configured'}`));
+        }
+      }
+    } catch (error) {
+      console.log(chalk.red(`❌ Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`));
+    }
+
+    await this.pressAnyKey();
+  }
+
+  /**
+   * Export all characters to files
+   */
+  private async exportAllCharacters(): Promise<void> {
+    const characters = this.loadAll();
+    if (characters.length === 0) {
+      console.log(chalk.yellow('No characters found to export.'));
+      return;
+    }
+
+    // Select export format
+    const format = await select({
+      message: 'Select export format for all characters:',
+      choices: [
+        { name: 'JSON (recommended)', value: 'json' },
+        { name: 'YAML', value: 'yaml' },
+        { name: 'Environment Variables (.env)', value: 'env' }
+      ]
+    }) as 'json' | 'yaml' | 'env';
+
+    // Confirm export
+    const confirmed = await confirm({
+      message: `Export ${characters.length} character(s) as ${format.toUpperCase()} files?`,
+      default: true
+    });
+
+    if (!confirmed) {
+      console.log(chalk.yellow('Export cancelled.'));
+      return;
+    }
+
+    try {
+      console.log(chalk.blue(`\n📦 Exporting ${characters.length} characters...`));
+      const filepaths = await this.fileManager.exportAllCharacters(characters, format);
+      
+      console.log(chalk.green(`\n✅ All characters exported successfully!`));
+      console.log(chalk.cyan(`📁 Export directory: ${this.fileManager.getOutputDirectory()}`));
+      console.log(chalk.gray(`📄 Files created: ${filepaths.length}`));
+      
+      // Show summary
+      const charactersWithModels = characters.filter((c: CharacterSheet) => c.aiModel).length;
+      if (charactersWithModels > 0) {
+        console.log(chalk.yellow(`\n⚠️  ${charactersWithModels} character(s) have AI models configured.`));
+        console.log(chalk.yellow(`🔑 Make sure to configure API keys before using these characters.`));
+      }
+      
+      console.log(chalk.gray(`\n💡 An index file has been created to help you manage all exported characters.`));
+    } catch (error) {
+      console.log(chalk.red(`❌ Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`));
+    }
+
+    await this.pressAnyKey();
+  }
+
+  /**
    * Wait for user input
    */
   private async pressAnyKey(): Promise<void> {
-    await input({
-      message: 'Press Enter to continue...'
-    });
+    await input({ message: 'Press Enter to continue...' });
   }
 }

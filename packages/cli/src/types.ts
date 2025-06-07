@@ -20,6 +20,17 @@ export interface CharacterSheet {
     quirks: string[];
   };
   emotionalState: EmotionalState;
+  aiModel?: {
+    provider: 'openai' | 'anthropic' | 'google' | 'groq' | 'cohere' | 'local';
+    model: string;
+    apiKey?: string;
+    baseUrl?: string;
+    maxTokens?: number;
+    temperature?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

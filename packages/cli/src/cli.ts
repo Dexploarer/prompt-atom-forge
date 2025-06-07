@@ -5,9 +5,9 @@
  */
 
 const minimist = require('minimist');
-const chalk = require('chalk');
+const chalk = require('chalk').default || require('chalk');
 const figlet = require('figlet');
-const boxen = require('boxen');
+const boxen = require('boxen').default || require('boxen');
 const { CharacterManager } = require('./managers/CharacterManager');
 const { EmotionManager } = require('./managers/EmotionManager');
 const { ChainManager } = require('./managers/ChainManager');
@@ -15,6 +15,9 @@ const { AuthManager } = require('./managers/AuthManager');
 const { ConfigManager } = require('./managers/ConfigManager');
 const { ContactManager } = require('./managers/ContactManager');
 const { MCPManager } = require('./managers/MCPManager');
+const { EnvironmentManager } = require('./managers/EnvironmentManager');
+const { fileURLToPath } = require('url');
+const path = require('path');
 
 // Note: These modules use ES6 exports and will be imported dynamically
 // const { PromptBuilder } = require('./modules/PromptBuilder');
@@ -28,6 +31,7 @@ export class CLI {
   private characterManager: typeof CharacterManager;
   private emotionManager: typeof EmotionManager;
   private chainManager: typeof ChainManager;
+  private environmentManager: typeof EnvironmentManager;
   private mcpManager: typeof MCPManager;
   private configManager: typeof ConfigManager;
   private contactManager: typeof ContactManager;
@@ -49,6 +53,7 @@ export class CLI {
     this.mcpManager = new MCPManager();
     this.contactManager = new ContactManager(dataDir);
     this.authManager = new AuthManager(dataDir, this.configManager.getConfig());
+    this.environmentManager = new EnvironmentManager(dataDir);
     
     // Module helpers will be initialized dynamically when needed
     this.promptBuilder = null;
@@ -118,6 +123,13 @@ export class CLI {
     console.log('  mcp <action>            MCP server management');
     console.log('  analytics               Show analytics dashboard');
     console.log('  config <key> [value]    Configuration management');
+    console.log('  env <action>            Environment & AI model management');
+    console.log('    config                Configure environment settings');
+    console.log('    models                Manage AI models');
+    console.log('    keys                  Manage API keys');
+    console.log('    env                   Manage .env file');
+    console.log('    test                  Test API connections');
+    console.log('    show                  View current configuration');
     console.log('  import <file>           Import data from file');
     console.log('  export <file>           Export data to file');
     console.log('');
@@ -132,6 +144,7 @@ export class CLI {
     console.log('  prompt-or-die character create "Hero Character"');
     console.log('  prompt-or-die prompt "Generate a creative story"');
     console.log('  prompt-or-die chain list');
+    console.log('  prompt-or-die env config');
     console.log('  prompt-or-die scaffold mcp-server');
   }
 
@@ -141,6 +154,26 @@ export class CLI {
   private showVersion(): void {
     const packageJson = require('../package.json');
     console.log(chalk.blue(`Prompt or Die CLI v${packageJson.version}`));
+  }
+
+  /**
+   * Show authentication help
+   */
+  private showAuthHelp(): void {
+    console.log(chalk.blue('🔐 Authentication Commands'));
+    console.log('');
+    console.log(chalk.blue('📋 Usage:'));
+    console.log('  prompt-or-die auth <action>');
+    console.log('');
+    console.log(chalk.blue('🎯 Actions:'));
+    console.log('  login                   Login to your account');
+    console.log('  logout                  Logout from your account');
+    console.log('  status                  Show authentication status');
+    console.log('');
+    console.log(chalk.blue('💡 Examples:'));
+    console.log('  prompt-or-die auth login');
+    console.log('  prompt-or-die auth status');
+    console.log('  prompt-or-die auth logout');
   }
 
   /**
@@ -156,12 +189,6 @@ export class CLI {
       boolean: ['help', 'version', 'verbose']
     });
 
-    // Show help
-    if (args.help || args._.length === 0) {
-      this.showHelp();
-      return;
-    }
-
     // Show version
     if (args.version) {
       this.showVersion();
@@ -169,6 +196,18 @@ export class CLI {
     }
 
     const [command, action, ...params] = args._;
+
+    // Show general help if no command provided
+    if (args._.length === 0) {
+      this.showHelp();
+      return;
+    }
+
+    // Show general help if help flag with no command
+    if (args.help && !command) {
+      this.showHelp();
+      return;
+    }
 
     // Initialize modules if needed for commands that require them
     const moduleRequiredCommands = ['prompt', 'analytics', 'import', 'export'];
@@ -205,6 +244,10 @@ export class CLI {
         case 'config':
           await this.handleConfigCommand(action, params, args);
           break;
+        case 'env':
+        case 'environment':
+          await this.handleEnvCommand(action, params, args);
+          break;
         case 'import':
           await this.handleImportCommand(action, params, args);
           break;
@@ -229,45 +272,68 @@ export class CLI {
    * Handle authentication commands
    */
   private async handleAuthCommand(action: string, params: string[], args: any): Promise<void> {
+    // Show auth help if help flag is present or no action provided
+    if (args.help || !action) {
+      this.showAuthHelp();
+      return;
+    }
+
     switch (action) {
       case 'login':
-        console.log(chalk.blue('🔐 Authentication Login'));
-        // Implementation would go here - for now just show status
-        console.log(chalk.gray('Authentication functionality would be implemented here'));
+        await this.authManager.login();
         break;
       case 'logout':
-        console.log(chalk.blue('🚪 Authentication Logout'));
-        console.log(chalk.gray('Logout functionality would be implemented here'));
+        await this.authManager.logout();
         break;
       case 'status':
-        console.log(chalk.blue('📊 Authentication Status'));
         const isAuth = this.authManager.isAuthenticated();
+        console.log(chalk.blue('📊 Authentication Status'));
         console.log(isAuth ? chalk.green('✅ Authenticated') : chalk.red('❌ Not authenticated'));
         break;
       default:
         console.error(chalk.red(`Unknown auth action: ${action}`));
-        console.log(chalk.gray('Available actions: login, logout, status'));
+        this.showAuthHelp();
     }
+  }
+
+  /**
+   * Show character help
+   */
+  private showCharacterHelp(): void {
+    console.log(chalk.blue('🎭 Character Commands'));
+    console.log('');
+    console.log(chalk.blue('📋 Usage:'));
+    console.log('  prompt-or-die character <action> [options]');
+    console.log('');
+    console.log(chalk.blue('🎯 Actions:'));
+    console.log('  create <name>           Create a new character');
+    console.log('  list                    List all characters');
+    console.log('  show <id>               Show character details');
+    console.log('  delete <id>             Delete a character');
+    console.log('');
+    console.log(chalk.blue('💡 Examples:'));
+    console.log('  prompt-or-die character create "Hero Character"');
+    console.log('  prompt-or-die character list');
+    console.log('  prompt-or-die character show 123');
+    console.log('  prompt-or-die character delete 123');
   }
 
   /**
    * Handle character commands
    */
   private async handleCharacterCommand(action: string, params: string[], args: any): Promise<void> {
+    // Show character help if help flag is present or no action provided
+    if (args.help || !action) {
+      this.showCharacterHelp();
+      return;
+    }
+
     switch (action) {
       case 'create':
-        const name = params[0];
-        if (!name) {
-          console.error(chalk.red('Character name is required'));
-          console.log(chalk.gray('Usage: prompt-or-die character create <name>'));
-          return;
-        }
-        console.log(chalk.blue(`🎭 Creating character: ${name}`));
-        console.log(chalk.gray('Character creation functionality would be implemented here'));
+        await this.characterManager.createCharacter();
         break;
       case 'list':
-        console.log(chalk.blue('📋 Character List'));
-        console.log(chalk.gray('Character listing functionality would be implemented here'));
+        await this.characterManager.listCharacters();
         break;
       case 'show':
         const id = params[0];
@@ -276,22 +342,23 @@ export class CLI {
           console.log(chalk.gray('Usage: prompt-or-die character show <id>'));
           return;
         }
-        console.log(chalk.blue(`👤 Character Details: ${id}`));
-        console.log(chalk.gray('Character details functionality would be implemented here'));
+        await this.characterManager.showCharacter(id);
         break;
       case 'delete':
-        const deleteId = params[0];
-        if (!deleteId) {
-          console.error(chalk.red('Character ID is required'));
-          console.log(chalk.gray('Usage: prompt-or-die character delete <id>'));
-          return;
-        }
-        console.log(chalk.blue(`🗑️ Deleting character: ${deleteId}`));
-        console.log(chalk.gray('Character deletion functionality would be implemented here'));
+        await this.characterManager.deleteCharacter();
+        break;
+      case 'edit':
+        await this.characterManager.editCharacter();
+        break;
+      case 'search':
+        await this.characterManager.searchCharacters();
+        break;
+      case 'analytics':
+        await this.characterManager.showAnalytics();
         break;
       default:
         console.error(chalk.red(`Unknown character action: ${action}`));
-        console.log(chalk.gray('Available actions: create, list, show, delete'));
+        this.showCharacterHelp();
     }
   }
 
@@ -299,8 +366,45 @@ export class CLI {
    * Handle emotion commands
    */
   private async handleEmotionCommand(action: string, params: string[], args: any): Promise<void> {
-    console.log(chalk.blue(`🎭 Emotion ${action}`));
-    console.log(chalk.gray('Emotion management functionality would be implemented here'));
+    if (!action) {
+      await this.emotionManager.showMenu();
+      return;
+    }
+
+    switch (action) {
+      case 'create':
+        await this.emotionManager.createEmotion();
+        break;
+      case 'list':
+        await this.emotionManager.listEmotions();
+        break;
+      case 'edit':
+        await this.emotionManager.editEmotion();
+        break;
+      case 'delete':
+        await this.emotionManager.deleteEmotion();
+        break;
+      case 'search':
+        await this.emotionManager.searchEmotions();
+        break;
+      case 'export':
+        await this.emotionManager.exportEmotions();
+        break;
+      case 'import':
+        await this.emotionManager.importEmotions();
+        break;
+      default:
+        console.error(chalk.red(`Unknown emotion action: ${action}`));
+        console.log(chalk.yellow('Available emotion commands:'));
+        console.log(chalk.gray('  emotion create    - Create new emotion'));
+        console.log(chalk.gray('  emotion list      - List all emotions'));
+        console.log(chalk.gray('  emotion edit      - Edit an emotion'));
+        console.log(chalk.gray('  emotion delete    - Delete an emotion'));
+        console.log(chalk.gray('  emotion search    - Search emotions'));
+        console.log(chalk.gray('  emotion export    - Export emotions'));
+        console.log(chalk.gray('  emotion import    - Import emotions'));
+        break;
+    }
   }
 
   /**
@@ -368,10 +472,54 @@ export class CLI {
     console.log(chalk.blue(`📤 Export ${action}`));
     console.log(chalk.gray('Export functionality would be implemented here'));
   }
+
+  /**
+   * Handle environment commands
+   */
+  private async handleEnvCommand(action: string, params: string[], args: any): Promise<void> {
+    if (!action) {
+      await this.environmentManager.showMenu();
+      return;
+    }
+
+    switch (action) {
+      case 'config':
+      case 'configure':
+        await this.environmentManager.showMenu();
+        break;
+      case 'models':
+        await this.environmentManager.manageAIModels();
+        break;
+      case 'keys':
+        await this.environmentManager.manageAPIKeys();
+        break;
+      case 'env':
+        await this.environmentManager.manageEnvFile();
+        break;
+      case 'test':
+        await this.environmentManager.testConnections();
+        break;
+      case 'show':
+      case 'view':
+        await this.environmentManager.viewConfiguration();
+        break;
+      default:
+        console.log(chalk.yellow('Available environment commands:'));
+        console.log(chalk.gray('  env config    - Configure environment and AI models'));
+        console.log(chalk.gray('  env models    - Manage AI models'));
+        console.log(chalk.gray('  env keys      - Manage API keys'));
+        console.log(chalk.gray('  env env       - Manage .env file'));
+        console.log(chalk.gray('  env test      - Test API connections'));
+        console.log(chalk.gray('  env show      - View current configuration'));
+        break;
+    }
+  }
 }
 
 // Main execution
-if (require.main === module) {
+const currentFile = fileURLToPath(import.meta.url);
+const scriptPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
+if (currentFile === scriptPath) {
   const cli = new CLI();
   cli.run(process.argv).catch((error) => {
     console.error(chalk.red('Fatal error:'), error);
