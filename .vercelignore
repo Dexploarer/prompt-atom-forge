@@ -1,0 +1,30 @@
+# Ignore packages directory since we're copying built files to node_modules
+packages/
+
+# Ignore development and build artifacts
+.turbo/
+node_modules/.cache/
+*.log
+
+# Ignore CLI-specific files
+test-cli.js
+ENVIRONMENT_SETUP.md
+
+# Ignore development configuration
+.husky/
+.lintstagedrc
+.prettierrc
+eslint.config.js
+jest.config.js
+turbo.json
+
+# Ignore documentation
+README.md
+style-guide.md
+pwa-todolist.md
+
+# Ignore local environment files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

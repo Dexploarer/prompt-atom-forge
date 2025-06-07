@@ -7,19 +7,18 @@
   "bin": {
     "prompt-or-die": "packages/cli/dist/interactive.js"
   },
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "start": "bun run build:cli && node packages/cli/dist/interactive.js",
-    "build": "turbo run build",
-    "build:cli": "bun run build --filter=@prompt-or-die/cli",
-    "build:core": "bun run build --filter=@prompt-or-die/core",
-    "build:web": "vite build",
+    "start": "npm run build:cli && node packages/cli/dist/interactive.js",
+    "build": "npm run build:core && npm run build:cli && npm run build:web",
+    "build:cli": "cd packages/cli && npm run build",
+    "build:core": "cd packages/core && npm run build",
+    "build:web": "npm run copy:packages && vite build",
+    "copy:packages": "npm run copy:core",
+    "copy:core": "node -e \"const fs=require('fs');const path=require('path');const src='packages/core/dist';const dest='node_modules/prompt-or-die-core';fs.mkdirSync(dest,{recursive:true});fs.cpSync(src,dest,{recursive:true});fs.copyFileSync('packages/core/package.json',path.join(dest,'package.json'));\"",
     "dev": "vite",
-    "dev:cli": "bun run dev --filter=@prompt-or-die/cli",
+    "dev:cli": "cd packages/cli && npm run dev",
     "build:dev": "vite build --mode development",
-    "build:sdk": "turbo run build --filter=@prompt-or-die/core",
+    "build:sdk": "npm run build:core",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
