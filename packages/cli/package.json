@@ -16,7 +16,7 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.2.0",
     "@inquirer/prompts": "6.0.1",
-    "prompt-or-die-core": "workspace:*",
+    "prompt-or-die-core": "file:../core",
     "@supabase/supabase-js": "^2.49.10",
     "axios": "^1.6.0",
     "boxen": "^7.1.1",
