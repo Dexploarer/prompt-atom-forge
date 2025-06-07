@@ -18,6 +18,7 @@ import { PromptBuilder } from './modules/PromptBuilder.js';
 import { MCPServerGenerator } from './modules/MCPServerGenerator.js';
 import { AnalyticsHelper } from './modules/AnalyticsHelper.js';
 import { ImportExportManager } from './modules/ImportExportManager.js';
+import { createScaffoldCommand } from './commands/scaffold.js';
 
 /**
  * Interactive CLI class
@@ -86,6 +87,7 @@ export class InteractiveCLI {
         choices: [
           { name: '🔮 Authentication Portal', value: 'auth' },
           { name: '⚡ Quick Prompt Builder', value: 'prompt' },
+          { name: '🏗️ Scaffold Projects', value: 'scaffold' },
           { name: '🤖 Character Sheets', value: 'character' },
           { name: '🎭 Emotional States', value: 'emotion' },
           { name: '🔗 Prompt Chains', value: 'chain' },
@@ -104,6 +106,9 @@ export class InteractiveCLI {
           break;
         case 'prompt':
           await this.promptBuilder.quickPromptBuilder();
+          break;
+        case 'scaffold':
+          await this.scaffoldMenu();
           break;
         case 'character':
           await this.characterSheetsMenu();
@@ -235,6 +240,71 @@ export class InteractiveCLI {
       case 'back':
         return;
     }
+  }
+
+  /**
+   * Scaffold menu
+   */
+  private async scaffoldMenu(): Promise<void> {
+    console.clear();
+    console.log(chalk.bold(chalk.blue('\n🏗️ Scaffold Projects')));
+    console.log(chalk.gray('Generate new projects and components\n'));
+    
+    const action = await select({
+      message: 'What would you like to scaffold?',
+      choices: [
+        { name: '🌐 Web UI Project', value: 'web' },
+        { name: '🧩 React Component', value: 'component' },
+        { name: '📄 Page Component', value: 'page' },
+        { name: '🪝 Custom Hook', value: 'hook' },
+        { name: '🔙 Back to Main Menu', value: 'back' }
+      ]
+    });
+    
+    if (action === 'back') return;
+    
+    try {
+      const scaffoldCommand = createScaffoldCommand();
+      
+      switch (action) {
+        case 'web':
+          console.log(chalk.yellow('\n🚀 Starting web project scaffold...'));
+          // Simulate command execution for web scaffold
+          await this.executeScaffoldCommand(['web']);
+          break;
+        case 'component':
+          console.log(chalk.yellow('\n🧩 Starting component scaffold...'));
+          await this.executeScaffoldCommand(['component']);
+          break;
+        case 'page':
+          console.log(chalk.yellow('\n📄 Starting page scaffold...'));
+          await this.executeScaffoldCommand(['component', '--type', 'page']);
+          break;
+        case 'hook':
+          console.log(chalk.yellow('\n🪝 Starting hook scaffold...'));
+          await this.executeScaffoldCommand(['component', '--type', 'hook']);
+          break;
+      }
+    } catch (error) {
+      console.error(chalk.red('❌ Scaffold failed:'), error instanceof Error ? error.message : String(error));
+    }
+    
+    await this.pressAnyKey();
+  }
+
+  /**
+   * Execute scaffold command
+   */
+  private async executeScaffoldCommand(args: string[]): Promise<void> {
+    const { spawn } = await import('child_process');
+    
+    return new Promise((resolve, reject) => {
+      // For now, we'll use the interactive prompts directly
+      // In a real implementation, this would execute the scaffold command
+      console.log(chalk.green('✅ Scaffold command would execute with args:'), args);
+      console.log(chalk.blue('📝 This will be implemented to run the actual scaffold logic'));
+      resolve();
+    });
   }
 
   /**
