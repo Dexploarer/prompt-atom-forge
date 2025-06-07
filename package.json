@@ -2,11 +2,7 @@
   "name": "prompt-or-die",
   "version": "1.0.0",
   "type": "module",
-  "packageManager": "bun@1.0.0",
-  "main": "packages/cli/dist/interactive.js",
-  "bin": {
-    "prompt-or-die": "packages/cli/dist/interactive.js"
-  },
+  "packageManager": "npm@10.0.0",
   "scripts": {
     "start": "npm run build:cli && node packages/cli/dist/interactive.js",
     "build": "npm run build:core && npm run build:cli && npm run build:web",
@@ -115,12 +111,5 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"
-  },
-  "exports": {
-    "./sdk": {
-      "import": "./packages/core/dist/index.js",
-      "require": "./packages/core/dist/index.cjs",
-      "types": "./packages/core/dist/index.d.ts"
-    }
   }
 }
