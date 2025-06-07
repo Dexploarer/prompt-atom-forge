@@ -139,7 +139,7 @@ export class ConfigManager {
         sessionTimeout: 3600,
         logSensitiveData: false
       },
-      webAppUrl: 'http://localhost:3000'
+      webAppUrl: 'http://www.promptordie.tech'
     };
 
     if (!existsSync(this.configPath)) {

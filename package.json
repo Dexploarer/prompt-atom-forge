@@ -2,7 +2,7 @@
   "name": "prompt-or-die",
   "version": "1.0.0",
   "type": "module",
-  "packageManager": "npm@10.0.0",
+  "packageManager": "bun@1.0.0",
   "main": "packages/cli/dist/interactive.js",
   "bin": {
     "prompt-or-die": "packages/cli/dist/interactive.js"
@@ -11,13 +11,13 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "npm run build:cli && node packages/cli/dist/interactive.js",
+    "start": "bun run build:cli && node packages/cli/dist/interactive.js",
     "build": "turbo run build",
-    "build:cli": "npm run build --workspace=@prompt-or-die/cli",
-    "build:core": "npm run build --workspace=@prompt-or-die/core",
+    "build:cli": "bun run build --filter=@prompt-or-die/cli",
+    "build:core": "bun run build --filter=@prompt-or-die/core",
     "build:web": "vite build",
     "dev": "vite",
-    "dev:cli": "npm run dev --workspace=@prompt-or-die/cli",
+    "dev:cli": "bun run dev --filter=@prompt-or-die/cli",
     "build:dev": "vite build --mode development",
     "build:sdk": "turbo run build --filter=@prompt-or-die/core",
     "lint": "eslint .",
@@ -73,7 +73,6 @@
     "next-themes": "^0.3.0",
     "open": "^10.1.2",
     "openai": "^4.35.0",
-    "prompt-or-die": "^0.1.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",

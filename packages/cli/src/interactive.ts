@@ -74,7 +74,6 @@ export class InteractiveCLI {
    */
   async showMainMenu(): Promise<void> {
     while (true) {
-      console.clear();
       console.log(chalk.bold(chalk.blue('\n🚀 Prompt or Die - Main Menu')));
       console.log(chalk.gray('Interactive SDK for AI prompt engineering\n'));
 
@@ -341,3 +340,12 @@ export class InteractiveCLI {
 
 // Export the CLI
 export default InteractiveCLI;
+
+// Main execution
+if (require.main === module) {
+  const cli = new InteractiveCLI();
+  cli.start().catch((error) => {
+    console.error(chalk.red('Fatal error:'), error);
+    process.exit(1);
+  });
+}

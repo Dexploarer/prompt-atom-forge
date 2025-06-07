@@ -1,8 +1,8 @@
 {
   "name": "@prompt-or-die/cli",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "Interactive CLI for Prompt or Die SDK",
-  "type": "module",
   "main": "dist/interactive.js",
   "bin": {
     "prompt-or-die": "dist/interactive.js"
@@ -15,18 +15,20 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.0",
-    "@inquirer/prompts": "^3.3.0",
-    "@prompt-or-die/core": "file:../core",
+    "@inquirer/prompts": "6.0.1",
+    "prompt-or-die-core": "workspace:*",
     "@supabase/supabase-js": "^2.49.10",
     "boxen": "^7.1.1",
     "chalk": "^5.3.0",
     "cli-table3": "^0.6.3",
     "figlet": "^1.7.0",
+    "minimist": "^1.2.8",
     "open": "^8.4.0",
     "ora": "^8.2.0"
   },
   "devDependencies": {
     "@types/figlet": "^1.5.8",
+    "@types/minimist": "^1.2.5",
     "@types/node": "^20.14.9",
     "rimraf": "^5.0.7",
     "typescript": "^5.5.2"
