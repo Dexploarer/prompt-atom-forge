@@ -87,14 +87,7 @@ const CharacterManager: React.FC = () => {
         };
         const { error } = await supabase
           .from('characters')
-          .update({
-            ...updateData,
-            personality: updateData.personality?.join(',') || null,
-            goals: updateData.goals?.join(',') || null,
-            strengths: updateData.strengths?.join(',') || null,
-            weaknesses: updateData.weaknesses?.join(',') || null,
-            quirks: updateData.quirks?.join(',') || null
-          })
+          .update(updateData)
           .eq('id', editingCharacter.id);
 
         if (error) throw error;

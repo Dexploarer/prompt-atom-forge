@@ -143,9 +143,9 @@ export const ChainManager: React.FC = () => {
       description: chain.description || '',
       category: (chain.metadata as { category?: string })?.category || '',
       is_active: chain.is_active ?? false,
-      timeout_seconds: (chain.metadata as { timeout_seconds?: number })?.timeout_seconds,
-      max_retries: chain.max_retries,
-      variables: chain.variables || {}
+      timeout_seconds: (chain.metadata as { timeout_seconds?: number })?.timeout_seconds || 30,
+      max_retries: (chain.metadata as { max_retries?: number })?.max_retries || 3,
+      variables: (chain.metadata as { variables?: Record<string, any> })?.variables || {}
     };
   };
 
@@ -158,11 +158,9 @@ export const ChainManager: React.FC = () => {
       name: step.name,
       prompt_template: step.prompt_template,
       step_order: step.step_order,
-      timeout_seconds: step.timeout_seconds,
-      max_retries: step.max_retries,
-      conditions: [],
-      next_step_id: step.next_step_id || undefined,
-      failure_step_id: step.failure_step_id || undefined
+      timeout_seconds: step.timeout_seconds || 30,
+      max_retries: step.retries || 3,
+      conditions: []
     };
   };
 

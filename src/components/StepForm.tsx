@@ -5,7 +5,7 @@ interface StepFormProps {
   isVisible: boolean;
   onClose: () => void;
   onSubmit: (data: StepFormData) => Promise<void>;
-  initialData?: StepFormData;
+  initialData?: StepFormData | undefined;
   isEditing?: boolean;
   availableSteps?: Array<{ id: string; name: string; step_order: number }>;
 }
@@ -130,7 +130,7 @@ export const StepForm: React.FC<StepFormProps> = ({
               disabled={isSubmitting}
             />
             <p className="text-xs text-gray-500 mt-1">
-              Use double curly braces for variables: {{`{variable_name}`}}
+              Use double curly braces for variables: {'{variable_name}'}
             </p>
           </div>
 

@@ -10,7 +10,7 @@ import DashboardStats from '@/components/DashboardStats';
 import ProjectsTable from '@/components/ProjectsTable';
 import CharacterManager from '@/components/CharacterManager';
 import EmotionManager from '@/components/EmotionManager';
-import ChainManager from '@/components/ChainManager';
+import { ChainManager } from '@/components/ChainManager';
 import MCPManager from '@/components/MCPManager';
 import ImportExportManager from '@/components/ImportExportManager';
 import QuickPromptBuilder from '@/components/QuickPromptBuilder';

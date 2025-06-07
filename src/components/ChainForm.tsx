@@ -5,7 +5,7 @@ interface ChainFormProps {
   isVisible: boolean;
   onClose: () => void;
   onSubmit: (data: ChainFormData) => Promise<void>;
-  initialData?: ChainFormData;
+  initialData?: ChainFormData | undefined;
   isEditing?: boolean;
 }
 

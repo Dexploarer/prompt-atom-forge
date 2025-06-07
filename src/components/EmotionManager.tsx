@@ -86,12 +86,12 @@ const EmotionManager: React.FC = () => {
       })));
       setCharacters((charactersResult.data || []).map(character => ({
         ...character,
-        goals: [],
-        quirks: [],
+        goals: character.goals || [],
+        quirks: character.quirks || [],
         relationships: [],
-        strengths: [],
-        weaknesses: [],
-        personality: character.personality ? [character.personality] : []
+        strengths: character.strengths || [],
+        weaknesses: character.weaknesses || [],
+        personality: character.personality || []
       })));
       setEmotionHistory(historyResult.data || []);
     } catch (error) {

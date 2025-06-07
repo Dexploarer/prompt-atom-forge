@@ -234,18 +234,15 @@ export const useChainManager = (userId?: string) => {
             result.step_id === step.id 
               ? {
                   ...result,
-                  status: success ? 'success' : 'failure',
-                  output: success ? `Step "${step.name}" completed successfully` : undefined,
-                  error: success ? undefined : `Step "${step.name}" failed to execute`,
+                  status: success ? 'success' as const : 'failure' as const,
+                  ...(success ? { output: `Step "${step.name}" completed successfully` } : {}),
+                  ...(success ? {} : { error: `Step "${step.name}" failed to execute` }),
                   execution_time: executionTime
                 }
               : result
           ));
 
-          if (!success && step.failure_step_id) {
-            // Handle failure step logic
-            continue;
-          } else if (!success) {
+          if (!success) {
             break; // Stop execution on failure
           }
         } catch (error) {

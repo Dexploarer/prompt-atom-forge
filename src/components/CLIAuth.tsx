@@ -122,20 +122,8 @@ export function CLIAuth({ mode = 'both', onSuccess, onClose, cliMode = false }: 
           const userEmail = data.user.email || email;
           const userHandle = handle || userEmail.split('@')[0];
           
-          // Ensure all required fields are strings
-           if (userEmail && userHandle) {
-             const { error: insertError } = await supabase
-               .from('users')
-               .upsert({
-                 id: data.user.id,
-                 email: userEmail,
-                 handle: userHandle,
-               });
-          
-             if (insertError) {
-               console.error('Error inserting user data:', insertError);
-             }
-           }
+          // User is automatically created in auth.users by Supabase Auth
+          // No need to manually insert into users table
         }
       }
       

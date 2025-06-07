@@ -647,8 +647,10 @@ export type Database = {
           is_active: boolean | null
           metadata: Json | null
           name: string
+          tags: string[] | null
           updated_at: string | null
           user_id: string
+          version: number | null
         }
         Insert: {
           created_at?: string | null
@@ -657,8 +659,10 @@ export type Database = {
           is_active?: boolean | null
           metadata?: Json | null
           name: string
+          tags?: string[] | null
           updated_at?: string | null
           user_id: string
+          version?: number | null
         }
         Update: {
           created_at?: string | null
@@ -667,8 +671,10 @@ export type Database = {
           is_active?: boolean | null
           metadata?: Json | null
           name?: string
+          tags?: string[] | null
           updated_at?: string | null
           user_id?: string
+          version?: number | null
         }
         Relationships: []
       }
@@ -718,69 +724,74 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          project_id: string
           prompt: string
           title: string | null
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
-          id: string
-          project_id: string
+          id?: string
           prompt: string
           title?: string | null
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          project_id?: string
           prompt?: string
           title?: string | null
           updated_at?: string | null
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "prompts_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       shared_prompts: {
         Row: {
           created_at: string | null
-          description: string | null
           id: string
-          is_public: boolean | null
-          prompt: string
+          prompt_id: string
           shared_by: string
-          title: string
-          updated_at: string | null
+          shared_with: string
         }
         Insert: {
           created_at?: string | null
-          description?: string | null
           id?: string
-          is_public?: boolean | null
-          prompt: string
+          prompt_id: string
           shared_by: string
-          title: string
-          updated_at?: string | null
+          shared_with: string
         }
         Update: {
           created_at?: string | null
-          description?: string | null
           id?: string
-          is_public?: boolean | null
-          prompt?: string
+          prompt_id?: string
           shared_by?: string
-          title?: string
-          updated_at?: string | null
+          shared_with?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shared_prompts_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_prompts_shared_by_fkey"
+            columns: ["shared_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_prompts_shared_with_fkey"
+            columns: ["shared_with"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
@@ -821,85 +832,3 @@ export type Database = {
     }
   }
 }
-
-type PublicSchema = Database["public"]
-
-export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
-    | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
-    : never

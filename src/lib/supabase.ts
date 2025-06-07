@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '../integrations/supabase/types';
+import { Database } from './database.types';
 
 // Use Vite environment variables for browser environment
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nhghudkseqdmgajcwybz.supabase.co';
@@ -30,21 +30,8 @@ export async function signUp(email: string, password: string, handle: string) {
       const userEmail = data.user.email || email;
       const userHandle = handle || userEmail.split('@')[0];
       
-      // Ensure all required fields are strings
-      if (userEmail && userHandle) {
-        const { error: profileError } = await supabase
-          .from('users')
-          .upsert({
-            id: data.user.id,
-            email: userEmail,
-            handle: userHandle
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Don't throw here as the auth user was created successfully
-        }
-      }
+      // User is automatically created in auth.users by Supabase Auth
+      // No need to manually insert into users table
     }
 
     return data;

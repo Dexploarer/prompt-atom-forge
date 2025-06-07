@@ -290,6 +290,7 @@ const QuickPromptBuilder: React.FC<QuickPromptBuilderProps> = ({
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
+          id: crypto.randomUUID(),
           name: `Quick Prompt - ${config.type} (${new Date().toLocaleDateString()})`,
           user_id: user.id
         })
